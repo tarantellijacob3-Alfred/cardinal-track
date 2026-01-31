@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import type { Athlete, TrackEvent, MeetEntryWithDetails } from '../types/database'
 import SearchBar from './SearchBar'
 
@@ -18,7 +18,9 @@ export default function AthleteAssignModal({
 }: Props) {
   const [search, setSearch] = useState('')
   const [assigning, setAssigning] = useState<string | null>(null)
+  const [batchAssigning, setBatchAssigning] = useState(false)
   const [relayLeg, setRelayLeg] = useState(1)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const assignedAthleteIds = new Set(entries.map(e => e.athlete_id))
 
@@ -61,6 +63,47 @@ export default function AthleteAssignModal({
     }
   }
 
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const handleBatchAssign = async () => {
+    if (selectedIds.size === 0) return
+    setBatchAssigning(true)
+    try {
+      const ids = Array.from(selectedIds)
+      for (const id of ids) {
+        if (event.is_relay) {
+          const team = event.short_name.includes('Alt') ? 'Alt' : 'A'
+          await onAssign(id, undefined, team)
+        } else {
+          await onAssign(id)
+        }
+      }
+      setSelectedIds(new Set())
+    } finally {
+      setBatchAssigning(false)
+    }
+  }
+
+  const selectableAthletes = filteredAthletes.filter(a => {
+    const count = athleteEventCounts[a.id] || 0
+    return event.is_relay || count < 4
+  })
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === selectableAthletes.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(selectableAthletes.map(a => a.id)))
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
@@ -99,13 +142,31 @@ export default function AthleteAssignModal({
           </div>
         )}
 
-        {/* Search */}
-        <div className="p-4">
+        {/* Search + select all */}
+        <div className="p-4 space-y-2">
           <SearchBar
             value={search}
             onChange={setSearch}
             placeholder="Search for athlete..."
           />
+          {filteredAthletes.length > 0 && (
+            <div className="flex items-center justify-between">
+              <label className="flex items-center space-x-2 text-sm text-gray-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === selectableAthletes.length && selectableAthletes.length > 0}
+                  onChange={handleSelectAll}
+                  className="rounded border-gray-300 text-navy-800 focus:ring-navy-500"
+                />
+                <span>Select all ({selectableAthletes.length})</span>
+              </label>
+              {selectedIds.size > 0 && (
+                <span className="text-xs text-navy-600 font-medium">
+                  {selectedIds.size} selected
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Athlete list */}
@@ -117,51 +178,92 @@ export default function AthleteAssignModal({
               {filteredAthletes.map(athlete => {
                 const count = athleteEventCounts[athlete.id] || 0
                 const atLimit = count >= 4
+                const isSelected = selectedIds.has(athlete.id)
+                const isDisabled = atLimit && !event.is_relay
                 return (
-                  <button
+                  <div
                     key={athlete.id}
-                    onClick={() => handleAssign(athlete.id)}
-                    disabled={assigning === athlete.id || (atLimit && !event.is_relay)}
-                    className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
-                      atLimit && !event.is_relay
-                        ? 'bg-red-50 opacity-60 cursor-not-allowed'
-                        : 'hover:bg-navy-50 active:bg-navy-100'
+                    className={`flex items-center p-3 rounded-lg transition-colors ${
+                      isDisabled
+                        ? 'bg-red-50 opacity-60'
+                        : isSelected
+                        ? 'bg-navy-50 ring-1 ring-navy-300'
+                        : 'hover:bg-navy-50'
                     }`}
                   >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-navy-100 rounded-full flex items-center justify-center">
-                        <span className="text-xs font-medium text-navy-700">
-                          {athlete.first_name[0]}{athlete.last_name[0]}
+                    {/* Checkbox */}
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      disabled={isDisabled}
+                      onChange={() => toggleSelected(athlete.id)}
+                      className="rounded border-gray-300 text-navy-800 focus:ring-navy-500 mr-3 flex-shrink-0"
+                    />
+
+                    {/* Athlete info — tap to single assign */}
+                    <button
+                      onClick={() => handleAssign(athlete.id)}
+                      disabled={assigning === athlete.id || isDisabled}
+                      className="flex-1 flex items-center justify-between min-w-0"
+                    >
+                      <div className="flex items-center space-x-3 min-w-0">
+                        <div className="w-8 h-8 bg-navy-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-medium text-navy-700">
+                            {athlete.first_name[0]}{athlete.last_name[0]}
+                          </span>
+                        </div>
+                        <span className="font-medium text-sm text-navy-800 truncate">
+                          {athlete.last_name}, {athlete.first_name}
                         </span>
                       </div>
-                      <span className="font-medium text-sm text-navy-800">
-                        {athlete.last_name}, {athlete.first_name}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                        atLimit
-                          ? 'bg-cardinal-100 text-cardinal-700'
-                          : count >= 3
-                          ? 'bg-gold-100 text-gold-700'
-                          : 'bg-green-100 text-green-700'
-                      }`}>
-                        {count}/4
-                      </span>
-                      {assigning === athlete.id ? (
-                        <div className="w-5 h-5 animate-spin rounded-full border-2 border-navy-300 border-t-navy-800" />
-                      ) : (
-                        <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                      )}
-                    </div>
-                  </button>
+                      <div className="flex items-center space-x-2 flex-shrink-0">
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                          atLimit
+                            ? 'bg-cardinal-100 text-cardinal-700'
+                            : count >= 3
+                            ? 'bg-gold-100 text-gold-700'
+                            : 'bg-green-100 text-green-700'
+                        }`}>
+                          {count}/4
+                        </span>
+                        {assigning === athlete.id ? (
+                          <div className="w-5 h-5 animate-spin rounded-full border-2 border-navy-300 border-t-navy-800" />
+                        ) : (
+                          <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  </div>
                 )
               })}
             </div>
           )}
         </div>
+
+        {/* Batch assign footer */}
+        {selectedIds.size > 0 && (
+          <div className="border-t bg-navy-50 p-3 rounded-b-2xl flex items-center justify-between">
+            <span className="text-sm text-navy-700 font-medium">
+              {selectedIds.size} athlete{selectedIds.size > 1 ? 's' : ''} selected
+            </span>
+            <button
+              onClick={handleBatchAssign}
+              disabled={batchAssigning}
+              className="btn-primary text-sm flex items-center space-x-2"
+            >
+              {batchAssigning ? (
+                <>
+                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  <span>Adding...</span>
+                </>
+              ) : (
+                <span>Add Selected ({selectedIds.size})</span>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

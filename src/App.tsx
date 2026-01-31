@@ -9,6 +9,7 @@ import Meets from './pages/Meets'
 import MeetDetail from './pages/MeetDetail'
 import AthleteDetail from './pages/AthleteDetail'
 import PublicSearch from './pages/PublicSearch'
+import MeetReport from './pages/MeetReport'
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
             <Route path="/roster" element={<Roster />} />
             <Route path="/meets" element={<Meets />} />
             <Route path="/meets/:id" element={<MeetDetail />} />
+            <Route path="/meets/:id/report" element={<MeetReport />} />
             <Route path="/athletes/:id" element={<AthleteDetail />} />
             <Route path="/search" element={<PublicSearch />} />
           </Route>

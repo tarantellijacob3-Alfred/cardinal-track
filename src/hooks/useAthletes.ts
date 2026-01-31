@@ -67,7 +67,32 @@ export function useAthletes() {
     return { error }
   }
 
-  return { athletes, loading, refetch: fetch, addAthlete, updateAthlete, deleteAthlete }
+  async function bulkAddAthletes(newAthletes: AthleteInsert[]) {
+    const results: Athlete[] = []
+    const errors: Array<{ index: number; error: unknown }> = []
+    for (let i = 0; i < newAthletes.length; i++) {
+      const { data, error } = await supabase
+        .from('athletes')
+        .insert(newAthletes[i] as Record<string, unknown>)
+        .select()
+        .single()
+      if (!error && data) {
+        results.push(data as Athlete)
+      } else {
+        errors.push({ index: i, error })
+      }
+    }
+    if (results.length > 0) {
+      setAthletes(prev =>
+        [...prev, ...results].sort((a, b) =>
+          a.last_name.localeCompare(b.last_name) || a.first_name.localeCompare(b.first_name)
+        )
+      )
+    }
+    return { added: results, errors }
+  }
+
+  return { athletes, loading, refetch: fetch, addAthlete, bulkAddAthletes, updateAthlete, deleteAthlete }
 }
 
 export function useAthlete(id: string | undefined) {
