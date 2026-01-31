@@ -1,0 +1,32 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { AuthProvider } from './contexts/AuthContext'
+import Layout from './components/Layout'
+import Dashboard from './pages/Dashboard'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import Roster from './pages/Roster'
+import Meets from './pages/Meets'
+import MeetDetail from './pages/MeetDetail'
+import AthleteDetail from './pages/AthleteDetail'
+import PublicSearch from './pages/PublicSearch'
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/roster" element={<Roster />} />
+            <Route path="/meets" element={<Meets />} />
+            <Route path="/meets/:id" element={<MeetDetail />} />
+            <Route path="/athletes/:id" element={<AthleteDetail />} />
+            <Route path="/search" element={<PublicSearch />} />
+          </Route>
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  )
+}
