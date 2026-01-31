@@ -9,8 +9,14 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleSignOut = async () => {
-    await signOut()
-    navigate('/')
+    try {
+      await signOut()
+    } catch (e) {
+      console.error('Sign out error:', e)
+    } finally {
+      navigate('/login')
+      window.location.reload()
+    }
   }
 
   const isActive = (path: string) => location.pathname === path
