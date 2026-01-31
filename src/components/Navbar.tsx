@@ -25,6 +25,7 @@ export default function Navbar() {
     { path: '/', label: 'Home' },
     { path: '/roster', label: 'Roster' },
     { path: '/meets', label: 'Meets' },
+    { path: '/events', label: 'Events' },
     { path: '/search', label: 'Search' },
   ]
 

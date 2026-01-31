@@ -10,6 +10,7 @@ import MeetDetail from './pages/MeetDetail'
 import AthleteDetail from './pages/AthleteDetail'
 import PublicSearch from './pages/PublicSearch'
 import MeetReport from './pages/MeetReport'
+import Events from './pages/Events'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="/meets" element={<Meets />} />
             <Route path="/meets/:id" element={<MeetDetail />} />
             <Route path="/meets/:id/report" element={<MeetReport />} />
+            <Route path="/events" element={<Events />} />
             <Route path="/athletes/:id" element={<AthleteDetail />} />
             <Route path="/search" element={<PublicSearch />} />
           </Route>
