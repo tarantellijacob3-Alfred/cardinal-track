@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,24 +8,28 @@
   body {
     @apply antialiased text-navy-900;
   }
+  
+  h1, h2, h3 {
+    font-family: 'Playfair Display', 'Book Antiqua', 'Palatino Linotype', serif;
+  }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-navy-800 text-white px-4 py-2 rounded-lg font-medium
-      hover:bg-navy-700 active:bg-navy-900 transition-colors
+    @apply bg-cardinal-600 text-white px-4 py-2 rounded-lg font-medium
+      hover:bg-cardinal-700 active:bg-cardinal-800 transition-colors
       disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-secondary {
-    @apply bg-gold-500 text-navy-900 px-4 py-2 rounded-lg font-medium
-      hover:bg-gold-400 active:bg-gold-600 transition-colors
+    @apply bg-gold-400 text-navy-900 px-4 py-2 rounded-lg font-medium
+      hover:bg-gold-300 active:bg-gold-500 transition-colors
       disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-danger {
-    @apply bg-cardinal-600 text-white px-4 py-2 rounded-lg font-medium
-      hover:bg-cardinal-700 active:bg-cardinal-800 transition-colors
+    @apply bg-red-600 text-white px-4 py-2 rounded-lg font-medium
+      hover:bg-red-700 active:bg-red-800 transition-colors
       disabled:opacity-50 disabled:cursor-not-allowed;
   }
 

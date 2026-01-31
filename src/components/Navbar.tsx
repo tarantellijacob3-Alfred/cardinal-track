@@ -23,17 +23,15 @@ export default function Navbar() {
   ]
 
   return (
-    <nav className="no-print bg-navy-900 text-white shadow-lg">
+    <nav className="no-print bg-navy-950 text-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gold-500 rounded-full flex items-center justify-center">
-              <span className="text-navy-900 font-bold text-sm">BS</span>
-            </div>
+            <img src="/cardinal-logo.jpg" alt="Bishop Snyder Cardinals" className="w-10 h-10 object-contain" />
             <div className="hidden sm:block">
-              <div className="font-bold text-lg leading-tight">Cardinal Track</div>
-              <div className="text-gold-400 text-xs leading-tight">Bishop Snyder T&amp;F</div>
+              <div className="font-bold text-lg leading-tight text-cardinal-600">Cardinal Track</div>
+              <div className="text-gold-400 text-xs leading-tight">Bishop Snyder Track &amp; Field</div>
             </div>
           </Link>
 
