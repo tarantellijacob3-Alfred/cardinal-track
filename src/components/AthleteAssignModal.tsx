@@ -112,7 +112,7 @@ export default function AthleteAssignModal({
           <div>
             <h3 className="font-semibold text-navy-900 text-lg">Assign to {event.name}</h3>
             <p className="text-sm text-gray-500">
-              {entries.length}/{event.max_entries} slots filled
+              {entries.length} assigned
             </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">

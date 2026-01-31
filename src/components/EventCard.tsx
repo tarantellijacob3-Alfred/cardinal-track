@@ -39,7 +39,7 @@ export default function EventCard({ event, entries, isCoach, onAssign, onRemoveE
         </div>
         <div className="flex items-center space-x-2">
           <span className="text-sm text-gray-500">
-            {entries.length}/{event.max_entries}
+            {entries.length} entered
           </span>
           {isCoach && onAssign && (
             <button

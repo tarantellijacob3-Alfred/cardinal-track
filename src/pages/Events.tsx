@@ -19,7 +19,7 @@ const emptyEvent: Omit<TrackEventInsert, 'id'> = {
   name: '',
   short_name: '',
   category: 'Sprint',
-  max_entries: 4,
+  max_entries: 99,
   is_relay: false,
 }
 
