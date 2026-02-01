@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useMeet } from '../hooks/useMeets'
 import { useEvents } from '../hooks/useEvents'
@@ -7,17 +8,32 @@ import type { MeetEntryWithDetails } from '../types/database'
 interface AthleteRow {
   id: string
   name: string
+  firstName: string
+  lastName: string
   grade: number | null
   level: 'JV' | 'Varsity'
   gender: 'Boys' | 'Girls'
   events: { name: string; shortName: string; category: string; isRelay: boolean; relayLeg: number | null; relayTeam: string | null }[]
 }
 
+const categoryColor: Record<string, string> = {
+  Field: 'bg-green-100 text-green-800',
+  Sprint: 'bg-blue-100 text-blue-800',
+  Distance: 'bg-purple-100 text-purple-800',
+  Hurdles: 'bg-orange-100 text-orange-800',
+  Relay: 'bg-yellow-100 text-yellow-800',
+  Other: 'bg-gray-100 text-gray-700',
+}
+
+const OVER_LIMIT = 4
+
 export default function MeetReport() {
   const { id } = useParams<{ id: string }>()
   const { meet, loading: meetLoading } = useMeet(id)
   const { events, loading: eventsLoading } = useEvents()
   const { entries, loading: entriesLoading } = useMeetEntries(id)
+  const [filterGender, setFilterGender] = useState<'all' | 'Boys' | 'Girls'>('all')
+  const [filterLevel, setFilterLevel] = useState<'all' | 'JV' | 'Varsity'>('all')
 
   const loading = meetLoading || eventsLoading || entriesLoading
 
@@ -51,6 +67,8 @@ export default function MeetReport() {
       athleteMap.set(athlete.id, {
         id: athlete.id,
         name: `${athlete.last_name}, ${athlete.first_name}`,
+        firstName: athlete.first_name,
+        lastName: athlete.last_name,
         grade: athlete.grade,
         level: athlete.level,
         gender: athlete.gender,
@@ -68,20 +86,20 @@ export default function MeetReport() {
     })
   })
 
-  // Sort athletes alphabetically
-  const athletes = Array.from(athleteMap.values()).sort((a, b) =>
+  // Sort athletes alphabetically, apply filters
+  let athletes = Array.from(athleteMap.values()).sort((a, b) =>
     a.name.localeCompare(b.name)
   )
 
-  // Category color badges
-  const categoryColor: Record<string, string> = {
-    Field: 'bg-green-100 text-green-800',
-    Sprint: 'bg-blue-100 text-blue-800',
-    Distance: 'bg-purple-100 text-purple-800',
-    Hurdles: 'bg-orange-100 text-orange-800',
-    Relay: 'bg-yellow-100 text-yellow-800',
-    Other: 'bg-gray-100 text-gray-700',
+  if (filterGender !== 'all') {
+    athletes = athletes.filter(a => a.gender === filterGender)
   }
+  if (filterLevel !== 'all') {
+    athletes = athletes.filter(a => a.level === filterLevel)
+  }
+
+  // Stats
+  const overLimitCount = athletes.filter(a => a.events.length > OVER_LIMIT).length
 
   const handlePrint = () => window.print()
 
@@ -97,7 +115,7 @@ export default function MeetReport() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold">{meet.name}</h1>
-              <p className="text-sm text-gray-300 mt-1">Athlete / Event Report</p>
+              <p className="text-sm text-gray-300 mt-1">Meet Roster</p>
               <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-300">
                 <span className="flex items-center">
                   <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -129,7 +147,7 @@ export default function MeetReport() {
           </div>
 
           {/* Summary stats */}
-          <div className="mt-4 grid grid-cols-3 gap-4">
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="bg-navy-700/50 rounded-lg p-3 text-center">
               <p className="text-2xl font-bold text-gold-400">{athletes.length}</p>
               <p className="text-xs text-gray-300">Athletes</p>
@@ -144,7 +162,43 @@ export default function MeetReport() {
               </p>
               <p className="text-xs text-gray-300">Events</p>
             </div>
+            {overLimitCount > 0 && (
+              <div className="bg-red-500/30 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-red-300">{overLimitCount}</p>
+                <p className="text-xs text-red-200">Over 4 Events</p>
+              </div>
+            )}
           </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="no-print flex flex-wrap gap-3">
+        <div className="flex gap-1">
+          {(['all', 'Boys', 'Girls'] as const).map(g => (
+            <button
+              key={g}
+              onClick={() => setFilterGender(g)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                filterGender === g ? 'bg-navy-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {g === 'all' ? 'All' : g}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1">
+          {(['all', 'JV', 'Varsity'] as const).map(l => (
+            <button
+              key={l}
+              onClick={() => setFilterLevel(l)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                filterLevel === l ? 'bg-navy-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {l === 'all' ? 'All' : l}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -156,49 +210,61 @@ export default function MeetReport() {
         </div>
       ) : (
         <div className="space-y-3 no-print">
-          {athletes.map((athlete) => (
-            <div key={athlete.id} className="card">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div>
-                  <Link
-                    to={`/athletes/${athlete.id}`}
-                    className="text-lg font-semibold text-navy-900 hover:text-navy-700"
-                  >
-                    {athlete.name}
-                  </Link>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {athlete.grade && (
-                      <span className="text-xs text-gray-500">Grade {athlete.grade}</span>
-                    )}
-                    <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
-                      {athlete.level}
-                    </span>
-                    <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
-                      {athlete.gender}
-                    </span>
-                  </div>
-                </div>
-                <span className="text-sm text-gray-500 font-medium">
-                  {athlete.events.length} event{athlete.events.length !== 1 ? 's' : ''}
-                </span>
-              </div>
+          {athletes.map((athlete) => {
+            const sortedEvents = [...athlete.events].sort((a, b) => a.name.localeCompare(b.name))
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                {athlete.events
-                  .sort((a, b) => a.name.localeCompare(b.name))
-                  .map((ev, idx) => (
-                    <span
-                      key={idx}
-                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${categoryColor[ev.category] || categoryColor.Other}`}
+            return (
+              <div key={athlete.id} className="card">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div>
+                    <Link
+                      to={`/athletes/${athlete.id}`}
+                      className="text-lg font-semibold text-navy-900 hover:text-navy-700"
                     >
-                      {ev.shortName || ev.name}
-                      {ev.isRelay && ev.relayLeg ? ` (Leg ${ev.relayLeg})` : ''}
-                      {ev.isRelay && ev.relayTeam ? ` ${ev.relayTeam}` : ''}
-                    </span>
-                  ))}
+                      {athlete.name}
+                    </Link>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {athlete.grade && (
+                        <span className="text-xs text-gray-500">Grade {athlete.grade}</span>
+                      )}
+                      <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                        {athlete.level}
+                      </span>
+                      <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                        {athlete.gender}
+                      </span>
+                    </div>
+                  </div>
+                  <span className={`text-sm font-medium ${
+                    athlete.events.length > OVER_LIMIT ? 'text-red-600' : 'text-gray-500'
+                  }`}>
+                    {athlete.events.length} event{athlete.events.length !== 1 ? 's' : ''}
+                    {athlete.events.length > OVER_LIMIT && ' ⚠️'}
+                  </span>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {sortedEvents.map((ev, idx) => {
+                    const isOverLimit = idx >= OVER_LIMIT
+                    const baseColor = isOverLimit
+                      ? 'bg-red-100 text-red-700 border border-red-300'
+                      : categoryColor[ev.category] || categoryColor.Other
+
+                    return (
+                      <span
+                        key={idx}
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${baseColor}`}
+                      >
+                        {ev.shortName || ev.name}
+                        {ev.isRelay && ev.relayLeg ? ` (Leg ${ev.relayLeg})` : ''}
+                        {ev.isRelay && ev.relayTeam ? ` ${ev.relayTeam}` : ''}
+                      </span>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
@@ -206,7 +272,7 @@ export default function MeetReport() {
       <div className="print-only bg-white p-8">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold">{meet.name}</h1>
-          <p className="text-sm text-gray-500">Athlete / Event Report</p>
+          <p className="text-sm text-gray-500">Meet Roster</p>
           <p className="text-gray-600">
             {meetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
             {meet.location && ` — ${meet.location}`}
@@ -227,25 +293,35 @@ export default function MeetReport() {
             </tr>
           </thead>
           <tbody>
-            {athletes.map((athlete) => (
-              <tr key={athlete.id} className="border-b border-gray-200">
-                <td className="py-1.5 pr-4 font-medium">{athlete.name}</td>
-                <td className="py-1.5 pr-4">{athlete.grade ?? '—'}</td>
-                <td className="py-1.5 pr-4">{athlete.level}</td>
-                <td className="py-1.5">
-                  {athlete.events
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map(ev => {
+            {athletes.map((athlete) => {
+              const sortedEvents = [...athlete.events].sort((a, b) => a.name.localeCompare(b.name))
+              const isOver = athlete.events.length > OVER_LIMIT
+
+              return (
+                <tr key={athlete.id} className={`border-b border-gray-200 ${isOver ? 'bg-red-50' : ''}`}>
+                  <td className="py-1.5 pr-4 font-medium">{athlete.name}</td>
+                  <td className="py-1.5 pr-4">{athlete.grade ?? '—'}</td>
+                  <td className="py-1.5 pr-4">{athlete.level}</td>
+                  <td className="py-1.5">
+                    {sortedEvents.map((ev, idx) => {
                       let label = ev.shortName || ev.name
                       if (ev.isRelay && ev.relayLeg) label += ` (L${ev.relayLeg})`
                       if (ev.isRelay && ev.relayTeam) label += ` ${ev.relayTeam}`
-                      return label
-                    })
-                    .join(', ')}
-                </td>
-                <td className="py-1.5 text-right">{athlete.events.length}</td>
-              </tr>
-            ))}
+                      const over = idx >= OVER_LIMIT
+                      return (
+                        <span key={idx}>
+                          {idx > 0 && ', '}
+                          <span className={over ? 'font-bold text-red-600' : ''}>{label}</span>
+                        </span>
+                      )
+                    })}
+                  </td>
+                  <td className={`py-1.5 text-right ${isOver ? 'font-bold text-red-600' : ''}`}>
+                    {athlete.events.length}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
 

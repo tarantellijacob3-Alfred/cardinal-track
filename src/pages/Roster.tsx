@@ -2,10 +2,9 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useAthletes } from '../hooks/useAthletes'
-import { supabase } from '../lib/supabase'
 import SearchBar from '../components/SearchBar'
 import BulkImportModal from '../components/BulkImportModal'
-import type { Athlete, AthleteInsert, MeetEntryWithDetails } from '../types/database'
+import type { Athlete, AthleteInsert } from '../types/database'
 
 type LevelFilter = 'all' | 'JV' | 'Varsity'
 type GenderFilter = 'all' | 'Boys' | 'Girls'
@@ -95,32 +94,6 @@ function InlineEditCell({ value, onSave, type = 'text', options = [], className 
 export default function Roster() {
   const { isCoach } = useAuth()
   const { athletes, loading, addAthlete, bulkAddAthletes, updateAthlete, deleteAthlete } = useAthletes()
-  const [allEntries, setAllEntries] = useState<MeetEntryWithDetails[]>([])
-  const [entriesLoading, setEntriesLoading] = useState(true)
-
-  useEffect(() => {
-    async function fetchAllEntries() {
-      setEntriesLoading(true)
-      const { data } = await supabase
-        .from('meet_entries')
-        .select(`*, athletes (*), events (*)`)
-      if (data) setAllEntries(data as unknown as MeetEntryWithDetails[])
-      setEntriesLoading(false)
-    }
-    fetchAllEntries()
-  }, [])
-
-  // Group entries by athlete id
-  const entriesByAthlete = useMemo(() => {
-    const map = new Map<string, MeetEntryWithDetails[]>()
-    for (const entry of allEntries) {
-      const list = map.get(entry.athlete_id) || []
-      list.push(entry)
-      map.set(entry.athlete_id, list)
-    }
-    return map
-  }, [allEntries])
-
   const [search, setSearch] = useState('')
   const [levelFilter, setLevelFilter] = useState<LevelFilter>('all')
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all')
@@ -379,147 +352,97 @@ export default function Roster() {
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredAthletes.map(athlete => {
-            const athleteEntries = entriesByAthlete.get(athlete.id) || []
-            // Deduplicate events by event name (athlete could be in same event across meets)
-            const uniqueEvents = new Map<string, { name: string; shortName: string; category: string; isRelay: boolean }>()
-            athleteEntries.forEach(e => {
-              if (e.events && !uniqueEvents.has(e.events.id)) {
-                uniqueEvents.set(e.events.id, {
-                  name: e.events.name,
-                  shortName: e.events.short_name,
-                  category: e.events.category,
-                  isRelay: e.events.is_relay,
-                })
-              }
-            })
-            const events = Array.from(uniqueEvents.values()).sort((a, b) => a.name.localeCompare(b.name))
-
-            const categoryColor: Record<string, string> = {
-              Field: 'bg-green-100 text-green-800',
-              Sprint: 'bg-blue-100 text-blue-800',
-              Distance: 'bg-purple-100 text-purple-800',
-              Hurdles: 'bg-orange-100 text-orange-800',
-              Relay: 'bg-yellow-100 text-yellow-800',
-              Other: 'bg-gray-100 text-gray-700',
-            }
-
-            return (
+          {filteredAthletes.map(athlete => (
               <div key={athlete.id} className="card">
-                <div className="space-y-2">
-                  {/* Top row: avatar + name */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3 min-w-0 flex-1">
-                      <div className="flex-shrink-0 w-10 h-10 bg-navy-100 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium text-navy-700">
-                          {athlete.first_name[0]}{athlete.last_name[0]}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3 min-w-0 flex-1">
+                    <div className="flex-shrink-0 w-10 h-10 bg-navy-100 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-medium text-navy-700">
+                        {athlete.first_name[0]}{athlete.last_name[0]}
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center space-x-1 flex-wrap">
+                        {isCoach ? (
+                          <>
+                            <InlineEditCell
+                              value={athlete.last_name}
+                              onSave={val => handleInlineUpdate(athlete.id, 'last_name', val)}
+                              className="font-semibold text-navy-900"
+                            />
+                            <span className="text-gray-400">,</span>
+                            <InlineEditCell
+                              value={athlete.first_name}
+                              onSave={val => handleInlineUpdate(athlete.id, 'first_name', val)}
+                              className="text-navy-800"
+                            />
+                          </>
+                        ) : (
+                          <Link to={`/athletes/${athlete.id}`} className="font-semibold text-navy-900 hover:text-navy-700 truncate">
+                            {athlete.last_name}, {athlete.first_name}
+                          </Link>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        {athlete.grade && (
+                          <span className="text-xs text-gray-500">Grade {athlete.grade}</span>
+                        )}
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                          athlete.level === 'Varsity'
+                            ? 'bg-cardinal-100 text-cardinal-700'
+                            : 'bg-navy-100 text-navy-700'
+                        }`}>
+                          {athlete.level}
+                        </span>
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                          athlete.gender === 'Boys'
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-pink-100 text-pink-700'
+                        }`}>
+                          {athlete.gender}
                         </span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center space-x-1 flex-wrap">
-                          {isCoach ? (
-                            <>
-                              <InlineEditCell
-                                value={athlete.last_name}
-                                onSave={val => handleInlineUpdate(athlete.id, 'last_name', val)}
-                                className="font-semibold text-navy-900"
-                              />
-                              <span className="text-gray-400">,</span>
-                              <InlineEditCell
-                                value={athlete.first_name}
-                                onSave={val => handleInlineUpdate(athlete.id, 'first_name', val)}
-                                className="text-navy-800"
-                              />
-                            </>
-                          ) : (
-                            <Link to={`/athletes/${athlete.id}`} className="font-semibold text-navy-900 hover:text-navy-700 truncate">
-                              {athlete.last_name}, {athlete.first_name}
-                            </Link>
-                          )}
-                        </div>
-                      </div>
                     </div>
-
-                    {/* Coach actions - always visible on right */}
-                    {isCoach && (
-                      <div className="flex items-center space-x-1 flex-shrink-0">
-                        <button
-                          onClick={() => handlePromoteDemote(athlete)}
-                          className={`px-2 py-1 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
-                            athlete.level === 'JV'
-                              ? 'text-cardinal-700 hover:bg-cardinal-50 border border-cardinal-200'
-                              : 'text-navy-700 hover:bg-navy-50 border border-navy-200'
-                          }`}
-                          title={athlete.level === 'JV' ? 'Promote to Varsity' : 'Move to JV'}
-                        >
-                          {athlete.level === 'JV' ? '↑ V' : '↓ JV'}
-                        </button>
-                        <button
-                          onClick={() => handleDeactivate(athlete.id)}
-                          className="p-1.5 text-gray-400 hover:text-cardinal-600 rounded-lg hover:bg-cardinal-50 transition-colors"
-                          title="Deactivate"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                              d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handlePermanentDelete(athlete.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-                          title="Delete permanently"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    )}
                   </div>
 
-                  {/* Bottom row: meta badges */}
-                  <div className="flex items-center gap-2 flex-wrap pl-13">
-                    {athlete.grade && (
-                      <span className="text-xs text-gray-500">Grade {athlete.grade}</span>
-                    )}
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                      athlete.level === 'Varsity'
-                        ? 'bg-cardinal-100 text-cardinal-700'
-                        : 'bg-navy-100 text-navy-700'
-                    }`}>
-                      {athlete.level}
-                    </span>
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                      athlete.gender === 'Boys'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-pink-100 text-pink-700'
-                    }`}>
-                      {athlete.gender}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Events row */}
-                {!entriesLoading && events.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {events.map((ev, idx) => (
-                      <span
-                        key={idx}
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${categoryColor[ev.category] || categoryColor.Other}`}
+                  {isCoach && (
+                    <div className="flex items-center space-x-1 flex-shrink-0">
+                      <button
+                        onClick={() => handlePromoteDemote(athlete)}
+                        className={`px-2 py-1 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
+                          athlete.level === 'JV'
+                            ? 'text-cardinal-700 hover:bg-cardinal-50 border border-cardinal-200'
+                            : 'text-navy-700 hover:bg-navy-50 border border-navy-200'
+                        }`}
+                        title={athlete.level === 'JV' ? 'Promote to Varsity' : 'Move to JV'}
                       >
-                        {ev.shortName || ev.name}
-                        {ev.isRelay && ' 🏃‍♂️'}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {!entriesLoading && events.length === 0 && (
-                  <p className="mt-2 text-xs text-gray-400 italic">No events registered</p>
-                )}
+                        {athlete.level === 'JV' ? '↑ V' : '↓ JV'}
+                      </button>
+                      <button
+                        onClick={() => handleDeactivate(athlete.id)}
+                        className="p-1.5 text-gray-400 hover:text-cardinal-600 rounded-lg hover:bg-cardinal-50 transition-colors"
+                        title="Deactivate"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handlePermanentDelete(athlete.id)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                        title="Delete permanently"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            )
-          })}
+          ))}
         </div>
       )}
 
