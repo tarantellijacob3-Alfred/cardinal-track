@@ -321,6 +321,7 @@ export default function MeetDetail() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('card')
   const [showCopyModal, setShowCopyModal] = useState(false)
+  const [genderFilter, setGenderFilter] = useState<'all' | 'Boys' | 'Girls'>('all')
 
   const loading = meetLoading || eventsLoading || entriesLoading
 
@@ -342,6 +343,26 @@ export default function MeetDetail() {
   }
 
   const meetDate = new Date(meet.date + 'T00:00:00')
+
+  // Auto-detect gender from meet name (e.g. "Boys JV Meet #1", "Girls Varsity Meet")
+  const meetNameLower = meet.name.toLowerCase()
+  const meetGenderHint: 'Boys' | 'Girls' | null =
+    meetNameLower.includes('boys') ? 'Boys' :
+    meetNameLower.includes('girls') ? 'Girls' :
+    null
+
+  // Filter athletes by meet level + gender
+  const filteredAthletes = useMemo(() => {
+    return athletes.filter(a => {
+      if (!a.active) return false
+      // Filter by meet level
+      if (meet.level !== 'Both' && a.level !== meet.level) return false
+      // Filter by gender tab (or auto-detected from meet name)
+      const activeGender = genderFilter !== 'all' ? genderFilter : meetGenderHint
+      if (activeGender && a.gender !== activeGender) return false
+      return true
+    })
+  }, [athletes, meet.level, genderFilter, meetGenderHint])
 
   const categories = ['Field', 'Sprint', 'Distance', 'Hurdles', 'Relay', 'Other']
   const filteredEvents = activeCategory
@@ -595,6 +616,36 @@ export default function MeetDetail() {
         </div>
       )}
 
+      {/* Gender filter (only show if meet doesn't already specify gender) */}
+      {!meetGenderHint && (
+        <div className="no-print flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-600">Show:</span>
+          {(['all', 'Boys', 'Girls'] as const).map(g => (
+            <button
+              key={g}
+              onClick={() => setGenderFilter(g)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                genderFilter === g
+                  ? g === 'Boys' ? 'bg-blue-600 text-white'
+                    : g === 'Girls' ? 'bg-pink-600 text-white'
+                    : 'bg-navy-800 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {g === 'all' ? 'All Athletes' : g}
+            </button>
+          ))}
+          <span className="text-xs text-gray-400 ml-2">
+            {filteredAthletes.length} available
+          </span>
+        </div>
+      )}
+      {meetGenderHint && (
+        <div className="no-print text-sm text-gray-500">
+          Showing <strong>{meetGenderHint}</strong> {meet.level !== 'Both' ? meet.level : ''} athletes ({filteredAthletes.length} available)
+        </div>
+      )}
+
       {/* Category filters (card view only) */}
       {viewMode === 'card' && (
         <div className="no-print flex flex-wrap gap-2">
@@ -640,7 +691,7 @@ export default function MeetDetail() {
       {viewMode === 'grid' && (
         <div className="no-print">
           <GridView
-            athletes={athletes}
+            athletes={filteredAthletes}
             events={events}
             entries={entries}
             isCoach={isCoach}
@@ -654,7 +705,7 @@ export default function MeetDetail() {
       {assigningEvent && (
         <AthleteAssignModal
           event={assigningEvent}
-          athletes={athletes}
+          athletes={filteredAthletes}
           entries={getEntriesByEvent(assigningEvent.id)}
           allEntries={entries}
           relaysCountTowardLimit={relaysCountTowardLimit}
