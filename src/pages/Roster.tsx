@@ -85,7 +85,8 @@ function InlineEditCell({ value, onSave, type = 'text', options = [], className 
       onChange={e => setDraft(e.target.value)}
       onBlur={commit}
       onKeyDown={handleKeyDown}
-      className="text-sm border border-navy-300 rounded px-1 py-0.5 w-20 focus:ring-1 focus:ring-navy-500 outline-none"
+      className="text-sm border border-navy-300 rounded px-1 py-0.5 min-w-0 max-w-24 focus:ring-1 focus:ring-navy-500 outline-none"
+      style={{ width: `${Math.max(draft.length * 8 + 16, 60)}px` }}
     />
   )
 }
@@ -314,35 +315,40 @@ export default function Roster() {
       )}
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <SearchBar value={search} onChange={setSearch} className="flex-1" />
-        <div className="flex flex-wrap gap-2">
+      <div className="space-y-3">
+        <SearchBar value={search} onChange={setSearch} />
+        
+        {/* Filter Pills - Stack on mobile, side by side on larger screens */}
+        <div className="flex flex-col sm:flex-row gap-3">
           {/* Level filter pills */}
-          <div className="flex space-x-1">
+          <div className="flex flex-wrap gap-1">
+            <span className="text-xs font-medium text-gray-500 self-center mr-2">Level:</span>
             {(['all', 'JV', 'Varsity'] as const).map(level => (
               <button
                 key={level}
                 onClick={() => setLevelFilter(level)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
                   levelFilter === level
                     ? 'bg-navy-800 text-white'
                     : 'bg-white text-gray-600 border hover:bg-gray-50'
                 }`}
               >
                 {level === 'all' ? 'All' : level}
-                <span className="ml-1 text-xs opacity-70">
-                  {level === 'all' ? counts.all : counts[level]}
+                <span className="ml-1 opacity-70">
+                  ({level === 'all' ? counts.all : counts[level]})
                 </span>
               </button>
             ))}
           </div>
+          
           {/* Gender filter pills */}
-          <div className="flex space-x-1">
+          <div className="flex flex-wrap gap-1">
+            <span className="text-xs font-medium text-gray-500 self-center mr-2">Gender:</span>
             {(['all', 'Boys', 'Girls'] as const).map(gender => (
               <button
                 key={gender}
                 onClick={() => setGenderFilter(gender)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
                   genderFilter === gender
                     ? gender === 'Boys'
                       ? 'bg-blue-600 text-white'
@@ -354,7 +360,7 @@ export default function Roster() {
               >
                 {gender === 'all' ? 'All' : gender}
                 {gender !== 'all' && (
-                  <span className="ml-1 text-xs opacity-70">{counts[gender]}</span>
+                  <span className="ml-1 opacity-70">({counts[gender]})</span>
                 )}
               </button>
             ))}
@@ -400,94 +406,98 @@ export default function Roster() {
 
             return (
               <div key={athlete.id} className="card">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  {/* Left: avatar + name + meta */}
-                  <div className="flex items-center space-x-3">
-                    <div className="flex-shrink-0 w-10 h-10 bg-navy-100 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium text-navy-700">
-                        {athlete.first_name[0]}{athlete.last_name[0]}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="flex items-center space-x-1">
-                        {isCoach ? (
-                          <>
-                            <InlineEditCell
-                              value={athlete.last_name}
-                              onSave={val => handleInlineUpdate(athlete.id, 'last_name', val)}
-                              className="font-semibold text-navy-900"
-                            />
-                            <span className="text-gray-400">,</span>
-                            <InlineEditCell
-                              value={athlete.first_name}
-                              onSave={val => handleInlineUpdate(athlete.id, 'first_name', val)}
-                              className="text-navy-800"
-                            />
-                          </>
-                        ) : (
-                          <Link to={`/athletes/${athlete.id}`} className="font-semibold text-navy-900 hover:text-navy-700">
-                            {athlete.last_name}, {athlete.first_name}
-                          </Link>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {athlete.grade && (
-                          <span className="text-xs text-gray-500">Grade {athlete.grade}</span>
-                        )}
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                          athlete.level === 'Varsity'
-                            ? 'bg-cardinal-100 text-cardinal-700'
-                            : 'bg-navy-100 text-navy-700'
-                        }`}>
-                          {athlete.level}
-                        </span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                          athlete.gender === 'Boys'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-pink-100 text-pink-700'
-                        }`}>
-                          {athlete.gender}
+                <div className="space-y-2">
+                  {/* Top row: avatar + name */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3 min-w-0 flex-1">
+                      <div className="flex-shrink-0 w-10 h-10 bg-navy-100 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-navy-700">
+                          {athlete.first_name[0]}{athlete.last_name[0]}
                         </span>
                       </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center space-x-1 flex-wrap">
+                          {isCoach ? (
+                            <>
+                              <InlineEditCell
+                                value={athlete.last_name}
+                                onSave={val => handleInlineUpdate(athlete.id, 'last_name', val)}
+                                className="font-semibold text-navy-900"
+                              />
+                              <span className="text-gray-400">,</span>
+                              <InlineEditCell
+                                value={athlete.first_name}
+                                onSave={val => handleInlineUpdate(athlete.id, 'first_name', val)}
+                                className="text-navy-800"
+                              />
+                            </>
+                          ) : (
+                            <Link to={`/athletes/${athlete.id}`} className="font-semibold text-navy-900 hover:text-navy-700 truncate">
+                              {athlete.last_name}, {athlete.first_name}
+                            </Link>
+                          )}
+                        </div>
+                      </div>
                     </div>
+
+                    {/* Coach actions - always visible on right */}
+                    {isCoach && (
+                      <div className="flex items-center space-x-1 flex-shrink-0">
+                        <button
+                          onClick={() => handlePromoteDemote(athlete)}
+                          className={`px-2 py-1 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
+                            athlete.level === 'JV'
+                              ? 'text-cardinal-700 hover:bg-cardinal-50 border border-cardinal-200'
+                              : 'text-navy-700 hover:bg-navy-50 border border-navy-200'
+                          }`}
+                          title={athlete.level === 'JV' ? 'Promote to Varsity' : 'Move to JV'}
+                        >
+                          {athlete.level === 'JV' ? '↑ V' : '↓ JV'}
+                        </button>
+                        <button
+                          onClick={() => handleDeactivate(athlete.id)}
+                          className="p-1.5 text-gray-400 hover:text-cardinal-600 rounded-lg hover:bg-cardinal-50 transition-colors"
+                          title="Deactivate"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handlePermanentDelete(athlete.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                          title="Delete permanently"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Right: coach actions */}
-                  {isCoach && (
-                    <div className="flex items-center space-x-1 pl-13 sm:pl-0">
-                      <button
-                        onClick={() => handlePromoteDemote(athlete)}
-                        className={`px-2 py-1 text-xs font-medium rounded-lg transition-colors ${
-                          athlete.level === 'JV'
-                            ? 'text-cardinal-700 hover:bg-cardinal-50 border border-cardinal-200'
-                            : 'text-navy-700 hover:bg-navy-50 border border-navy-200'
-                        }`}
-                        title={athlete.level === 'JV' ? 'Promote to Varsity' : 'Move to JV'}
-                      >
-                        {athlete.level === 'JV' ? '↑ Varsity' : '↓ JV'}
-                      </button>
-                      <button
-                        onClick={() => handleDeactivate(athlete.id)}
-                        className="p-1.5 text-gray-400 hover:text-cardinal-600 rounded-lg hover:bg-cardinal-50 transition-colors"
-                        title="Deactivate"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                            d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handlePermanentDelete(athlete.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-                        title="Delete permanently"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
+                  {/* Bottom row: meta badges */}
+                  <div className="flex items-center gap-2 flex-wrap pl-13">
+                    {athlete.grade && (
+                      <span className="text-xs text-gray-500">Grade {athlete.grade}</span>
+                    )}
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                      athlete.level === 'Varsity'
+                        ? 'bg-cardinal-100 text-cardinal-700'
+                        : 'bg-navy-100 text-navy-700'
+                    }`}>
+                      {athlete.level}
+                    </span>
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                      athlete.gender === 'Boys'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-pink-100 text-pink-700'
+                    }`}>
+                      {athlete.gender}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Events row */}
