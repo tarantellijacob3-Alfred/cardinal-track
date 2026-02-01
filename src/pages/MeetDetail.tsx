@@ -133,23 +133,15 @@ interface GridViewProps {
   athletes: { id: string; first_name: string; last_name: string; active: boolean }[]
   events: TrackEvent[]
   entries: MeetEntryWithDetails[]
-  meetId: string
   isCoach: boolean
   relaysCountTowardLimit: boolean
   onToggle: (athleteId: string, eventId: string, isAssigned: boolean, entryId?: string) => void
 }
 
 function GridView({ athletes, events, entries, isCoach, relaysCountTowardLimit, onToggle }: GridViewProps) {
-  // Build lookup: `${athleteId}:${eventId}` -> entry
-  const entryMap = useMemo(() => {
-    const m = new Map<string, MeetEntryWithDetails>()
-    for (const e of entries) {
-      m.set(`${e.athlete_id}:${e.event_id}`, e)
-    }
-    return m
-  }, [entries])
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(events[0]?.id || null)
 
-  // Build athlete event counts (non-relay)
+  // Build athlete event counts for 4-event limit
   const athleteCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const entry of entries) {
@@ -159,83 +151,152 @@ function GridView({ athletes, events, entries, isCoach, relaysCountTowardLimit, 
     return counts
   }, [entries, relaysCountTowardLimit])
 
-  const activeAthletes = athletes
-    .filter(a => a.active)
+  const selectedEvent = events.find(e => e.id === selectedEventId)
+  const eventEntries = entries.filter(e => e.event_id === selectedEventId)
+  const assignedAthleteIds = new Set(eventEntries.map(e => e.athlete_id))
+  
+  const availableAthletes = athletes
+    .filter(a => a.active && !assignedAthleteIds.has(a.id))
     .sort((a, b) => a.last_name.localeCompare(b.last_name) || a.first_name.localeCompare(b.first_name))
 
+  const assignedAthletes = eventEntries
+    .map(entry => ({
+      ...entry.athletes,
+      entryId: entry.id,
+      relay_leg: entry.relay_leg,
+      relay_team: entry.relay_team
+    }))
+    .sort((a, b) => (a.relay_leg || 99) - (b.relay_leg || 99))
+
+  const handleAssignAthlete = async (athleteId: string) => {
+    if (!selectedEventId || !isCoach) return
+    
+    const count = athleteCounts[athleteId] || 0
+    if (count >= 4 && !selectedEvent?.is_relay) {
+      alert('This athlete already has 4 events!')
+      return
+    }
+    
+    onToggle(athleteId, selectedEventId, false)
+  }
+
+  const handleRemoveEntry = async (entryId: string) => {
+    if (!isCoach) return
+    const entry = eventEntries.find(e => e.id === entryId)
+    if (entry) {
+      onToggle(entry.athlete_id, entry.event_id, true, entryId)
+    }
+  }
+
   return (
-    <div className="card overflow-hidden p-0">
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-xs">
-          <thead>
-            <tr className="border-b">
-              <th className="sticky left-0 bg-white z-10 text-left px-3 py-2 font-semibold text-navy-800 min-w-[160px]">
-                Athlete
-              </th>
-              <th className="sticky left-[160px] bg-white z-10 text-center px-1 py-2 font-semibold text-navy-800 min-w-[40px]">
-                #
-              </th>
-              {events.map(ev => (
-                <th
-                  key={ev.id}
-                  className={`text-center px-1 py-2 font-medium min-w-[44px] ${categoryBg[ev.category] || 'bg-gray-100'}`}
-                  title={ev.name}
-                >
-                  <div className="truncate max-w-[44px]">{ev.short_name}</div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {activeAthletes.map(athlete => {
-              const count = athleteCounts[athlete.id] || 0
-              const atLimit = count >= 4
-              return (
-                <tr key={athlete.id} className="hover:bg-gray-50">
-                  <td className="sticky left-0 bg-white z-10 px-3 py-1.5 font-medium text-navy-800 whitespace-nowrap border-r border-gray-100">
-                    {athlete.last_name}, {athlete.first_name}
-                  </td>
-                  <td className={`sticky left-[160px] bg-white z-10 text-center py-1.5 font-bold border-r border-gray-100 ${
-                    atLimit ? 'text-cardinal-600' : count >= 3 ? 'text-gold-600' : 'text-green-600'
-                  }`}>
-                    {count}/4
-                  </td>
-                  {events.map(ev => {
-                    const key = `${athlete.id}:${ev.id}`
-                    const entry = entryMap.get(key)
-                    const isAssigned = !!entry
-                    const isRelay = ev.is_relay
-                    const disabled = !isCoach || (!isRelay && atLimit && !isAssigned)
-                    return (
-                      <td
-                        key={ev.id}
-                        className={`text-center py-1.5 ${isAssigned ? categoryBgActive[ev.category] || 'bg-gray-500' : ''}`}
+    <div className="space-y-4">
+      {/* Event Column Headers */}
+      <div className="flex flex-wrap gap-2 border-b pb-4">
+        {events.map(event => {
+          const eventCount = entries.filter(e => e.event_id === event.id).length
+          const isSelected = event.id === selectedEventId
+          return (
+            <button
+              key={event.id}
+              onClick={() => setSelectedEventId(event.id)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                isSelected
+                  ? `${categoryBgActive[event.category] || 'bg-gray-600'} text-white shadow-md`
+                  : `${categoryBg[event.category] || 'bg-gray-100'} text-gray-700 hover:shadow-sm`
+              }`}
+            >
+              <div>{event.short_name}</div>
+              <div className="text-xs opacity-75">{eventCount} entered</div>
+            </button>
+          )
+        })}
+      </div>
+
+      {selectedEvent && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Assigned Athletes */}
+          <div className="space-y-2">
+            <h3 className="font-semibold text-navy-900">
+              {selectedEvent.name} ({assignedAthletes.length})
+            </h3>
+            {assignedAthletes.length === 0 ? (
+              <p className="text-gray-400 text-sm italic">No athletes assigned</p>
+            ) : (
+              <div className="space-y-1">
+                {assignedAthletes.map((athlete, idx) => (
+                  <div key={athlete.entryId} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-medium text-gray-400 w-6">
+                        {selectedEvent.is_relay && athlete.relay_leg ? `L${athlete.relay_leg}` : `${idx + 1}.`}
+                      </span>
+                      <span className="font-medium text-navy-800">
+                        {athlete.last_name}, {athlete.first_name}
+                      </span>
+                      {selectedEvent.is_relay && athlete.relay_team && (
+                        <span className="text-xs bg-navy-100 text-navy-600 px-1.5 py-0.5 rounded">
+                          {athlete.relay_team}
+                        </span>
+                      )}
+                    </div>
+                    {isCoach && (
+                      <button
+                        onClick={() => handleRemoveEntry(athlete.entryId)}
+                        className="text-cardinal-500 hover:text-cardinal-700 p-1"
+                        title="Remove"
                       >
-                        <button
-                          disabled={disabled}
-                          onClick={() => onToggle(athlete.id, ev.id, isAssigned, entry?.id)}
-                          className={`w-7 h-7 rounded transition-all ${
-                            disabled && !isAssigned
-                              ? 'cursor-not-allowed opacity-30'
-                              : isAssigned
-                              ? 'text-white font-bold hover:opacity-80'
-                              : 'hover:bg-gray-200 text-gray-300 hover:text-gray-500'
-                          }`}
-                          title={isAssigned ? `Remove from ${ev.name}` : disabled ? 'At limit' : `Add to ${ev.name}`}
-                        >
-                          {isAssigned ? '✓' : '·'}
-                        </button>
-                      </td>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Available Athletes */}
+          {isCoach && (
+            <div className="space-y-2">
+              <h3 className="font-semibold text-navy-900">
+                Add Athletes ({availableAthletes.length} available)
+              </h3>
+              {availableAthletes.length === 0 ? (
+                <p className="text-gray-400 text-sm italic">All athletes assigned or at limit</p>
+              ) : (
+                <div className="space-y-1 max-h-64 overflow-y-auto">
+                  {availableAthletes.map(athlete => {
+                    const count = athleteCounts[athlete.id] || 0
+                    const atLimit = count >= 4 && !selectedEvent.is_relay
+                    return (
+                      <button
+                        key={athlete.id}
+                        onClick={() => handleAssignAthlete(athlete.id)}
+                        disabled={atLimit}
+                        className={`w-full flex items-center justify-between py-2 px-3 rounded-lg transition-colors text-left ${
+                          atLimit
+                            ? 'bg-red-50 text-red-400 cursor-not-allowed opacity-60'
+                            : 'bg-white border hover:bg-navy-50 text-navy-800'
+                        }`}
+                      >
+                        <span className="font-medium">
+                          {athlete.last_name}, {athlete.first_name}
+                        </span>
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                          count >= 4 ? 'bg-red-100 text-red-700' :
+                          count >= 3 ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>
+                          {count}/4
+                        </span>
+                      </button>
                     )
                   })}
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-      {activeAthletes.length === 0 && (
-        <p className="text-center text-gray-400 py-8">No active athletes</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
@@ -575,7 +636,6 @@ export default function MeetDetail() {
             athletes={athletes}
             events={events}
             entries={entries}
-            meetId={id || ''}
             isCoach={isCoach}
             relaysCountTowardLimit={relaysCountTowardLimit}
             onToggle={handleGridToggle}
