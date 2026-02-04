@@ -325,6 +325,27 @@ export default function MeetDetail() {
 
   const loading = meetLoading || eventsLoading || entriesLoading
 
+  // Auto-detect gender from meet name (e.g. "Boys JV Meet #1", "Girls Varsity Meet")
+  const meetNameLower = meet?.name?.toLowerCase() ?? ''
+  const meetGenderHint: 'Boys' | 'Girls' | null =
+    meetNameLower.includes('boys') ? 'Boys' :
+    meetNameLower.includes('girls') ? 'Girls' :
+    null
+
+  // Filter athletes by meet level + gender
+  const filteredAthletes = useMemo(() => {
+    if (!meet) return []
+    return athletes.filter(a => {
+      if (!a.active) return false
+      // Filter by meet level
+      if (meet.level !== 'Both' && a.level !== meet.level) return false
+      // Filter by gender tab (or auto-detected from meet name)
+      const activeGender = genderFilter !== 'all' ? genderFilter : meetGenderHint
+      if (activeGender && a.gender !== activeGender) return false
+      return true
+    })
+  }, [athletes, meet, genderFilter, meetGenderHint])
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -343,26 +364,6 @@ export default function MeetDetail() {
   }
 
   const meetDate = new Date(meet.date + 'T00:00:00')
-
-  // Auto-detect gender from meet name (e.g. "Boys JV Meet #1", "Girls Varsity Meet")
-  const meetNameLower = meet.name.toLowerCase()
-  const meetGenderHint: 'Boys' | 'Girls' | null =
-    meetNameLower.includes('boys') ? 'Boys' :
-    meetNameLower.includes('girls') ? 'Girls' :
-    null
-
-  // Filter athletes by meet level + gender
-  const filteredAthletes = useMemo(() => {
-    return athletes.filter(a => {
-      if (!a.active) return false
-      // Filter by meet level
-      if (meet.level !== 'Both' && a.level !== meet.level) return false
-      // Filter by gender tab (or auto-detected from meet name)
-      const activeGender = genderFilter !== 'all' ? genderFilter : meetGenderHint
-      if (activeGender && a.gender !== activeGender) return false
-      return true
-    })
-  }, [athletes, meet.level, genderFilter, meetGenderHint])
 
   const categories = ['Field', 'Sprint', 'Distance', 'Hurdles', 'Relay', 'Other']
   const filteredEvents = activeCategory
