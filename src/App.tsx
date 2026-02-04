@@ -11,6 +11,7 @@ import AthleteDetail from './pages/AthleteDetail'
 import PublicSearch from './pages/PublicSearch'
 import MeetReport from './pages/MeetReport'
 import Events from './pages/Events'
+import Settings from './pages/Settings'
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="/events" element={<Events />} />
             <Route path="/athletes/:id" element={<AthleteDetail />} />
             <Route path="/search" element={<PublicSearch />} />
+            <Route path="/settings" element={<Settings />} />
           </Route>
         </Routes>
       </AuthProvider>

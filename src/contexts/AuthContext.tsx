@@ -78,10 +78,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
 
     if (!error && data.user) {
-      // Update the profile with the selected role
+      const isCoachSignUp = role === 'coach'
+      // Coach signups require approval before gaining coach access
       await supabase
         .from('profiles')
-        .update({ role, full_name: fullName } as Record<string, unknown>)
+        .update({
+          role: isCoachSignUp ? 'coach' : role,
+          approved: isCoachSignUp ? false : true,
+          full_name: fullName
+        } as Record<string, unknown>)
         .eq('id', data.user.id)
     }
 

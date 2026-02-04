@@ -57,6 +57,18 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+            {isCoach && (
+              <Link
+                to="/settings"
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  isActive('/settings')
+                    ? 'bg-navy-700 text-gold-400'
+                    : 'text-gray-300 hover:bg-navy-800 hover:text-white'
+                }`}
+              >
+                Settings
+              </Link>
+            )}
           </div>
 
           {/* Auth buttons */}
@@ -116,6 +128,19 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+            {isCoach && (
+              <Link
+                to="/settings"
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  isActive('/settings')
+                    ? 'bg-navy-700 text-gold-400'
+                    : 'text-gray-300 hover:bg-navy-800 hover:text-white'
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Settings
+              </Link>
+            )}
           </div>
           <div className="border-t border-navy-700 px-4 py-3">
             {user ? (
