@@ -76,6 +76,12 @@ export default function Login() {
             </Link>
           </p>
 
+          <div className="pt-2">
+            <Link to="/meets" className="btn-secondary w-full text-center">
+              Continue as parent or athlete
+            </Link>
+          </div>
+
           <p className="text-center text-sm text-gray-400">
             Or <Link to="/search" className="text-navy-600 hover:underline">search athletes</Link> without an account
           </p>

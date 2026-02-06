@@ -16,9 +16,11 @@ interface InlineEditProps {
   type?: 'text' | 'select'
   options?: string[]
   className?: string
+  displayValue?: string
+  editValue?: string
 }
 
-function InlineEditCell({ value, onSave, type = 'text', options = [], className = '' }: InlineEditProps) {
+function InlineEditCell({ value, onSave, type = 'text', options = [], className = '', displayValue, editValue }: InlineEditProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value)
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement>(null)
@@ -53,11 +55,11 @@ function InlineEditCell({ value, onSave, type = 'text', options = [], className 
   if (!editing) {
     return (
       <span
-        onClick={() => { setDraft(value); setEditing(true) }}
+        onClick={() => { setDraft(editValue ?? value); setEditing(true) }}
         className={`cursor-pointer hover:bg-navy-50 px-1 -mx-1 rounded transition-colors ${className}`}
         title="Click to edit"
       >
-        {value}
+        {displayValue ?? value}
       </span>
     )
   }
@@ -384,8 +386,21 @@ export default function Roster() {
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        {athlete.grade && (
-                          <span className="text-xs text-gray-500">Grade {athlete.grade}</span>
+                        {isCoach ? (
+                          <span className="text-xs text-gray-500">
+                            Grade{' '}
+                            <InlineEditCell
+                              value={athlete.grade ? String(athlete.grade) : ''}
+                              displayValue={athlete.grade ? String(athlete.grade) : '—'}
+                              editValue={athlete.grade ? String(athlete.grade) : ''}
+                              onSave={val => handleInlineUpdate(athlete.id, 'grade', val)}
+                              className="text-xs text-gray-500"
+                            />
+                          </span>
+                        ) : (
+                          athlete.grade && (
+                            <span className="text-xs text-gray-500">Grade {athlete.grade}</span>
+                          )
                         )}
                         <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
                           athlete.level === 'Varsity'
