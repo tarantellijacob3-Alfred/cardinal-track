@@ -101,6 +101,7 @@ export default function Roster() {
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all')
   const [showAddForm, setShowAddForm] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
+  const [settingsAthlete, setSettingsAthlete] = useState<Athlete | null>(null)
 
   // Add form state
   const [newFirstName, setNewFirstName] = useState('')
@@ -421,36 +422,17 @@ export default function Roster() {
                   </div>
 
                   {isCoach && (
-                    <div className="flex items-center space-x-1 flex-shrink-0">
+                    <div className="flex items-center flex-shrink-0">
                       <button
-                        onClick={() => handlePromoteDemote(athlete)}
-                        className={`px-2 py-1 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
-                          athlete.level === 'JV'
-                            ? 'text-cardinal-700 hover:bg-cardinal-50 border border-cardinal-200'
-                            : 'text-navy-700 hover:bg-navy-50 border border-navy-200'
-                        }`}
-                        title={athlete.level === 'JV' ? 'Promote to Varsity' : 'Move to JV'}
-                      >
-                        {athlete.level === 'JV' ? '↑ V' : '↓ JV'}
-                      </button>
-                      <button
-                        onClick={() => handleDeactivate(athlete.id)}
-                        className="p-1.5 text-gray-400 hover:text-cardinal-600 rounded-lg hover:bg-cardinal-50 transition-colors"
-                        title="Deactivate"
+                        onClick={() => setSettingsAthlete(athlete)}
+                        className="p-1.5 text-gray-400 hover:text-navy-700 rounded-lg hover:bg-navy-50 transition-colors"
+                        title="Settings"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                            d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handlePermanentDelete(athlete.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-                        title="Delete permanently"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.9.548 2.061.079 2.573-1.065z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                       </button>
                     </div>
@@ -467,6 +449,69 @@ export default function Roster() {
           onImport={handleBulkImport}
           onClose={() => setShowImportModal(false)}
         />
+      )}
+
+      {/* Athlete Settings Modal */}
+      {settingsAthlete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setSettingsAthlete(null)}
+          />
+          <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-lg p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-navy-900">Athlete Settings</h3>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {settingsAthlete.last_name}, {settingsAthlete.first_name}
+                </p>
+              </div>
+              <button
+                onClick={() => setSettingsAthlete(null)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <button
+                onClick={async () => {
+                  await handlePromoteDemote(settingsAthlete)
+                  setSettingsAthlete(null)
+                }}
+                className={`w-full px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                  settingsAthlete.level === 'JV'
+                    ? 'text-cardinal-700 hover:bg-cardinal-50 border-cardinal-200'
+                    : 'text-navy-700 hover:bg-navy-50 border-navy-200'
+                }`}
+              >
+                {settingsAthlete.level === 'JV' ? 'Promote to Varsity' : 'Move to JV'}
+              </button>
+
+              <button
+                onClick={async () => {
+                  await handleDeactivate(settingsAthlete.id)
+                  setSettingsAthlete(null)
+                }}
+                className="w-full px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50"
+              >
+                Deactivate
+              </button>
+
+              <button
+                onClick={async () => {
+                  await handlePermanentDelete(settingsAthlete.id)
+                  setSettingsAthlete(null)
+                }}
+                className="w-full px-3 py-2 rounded-lg text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50"
+              >
+                Delete permanently
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
