@@ -6,7 +6,7 @@ export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
-  const [role, setRole] = useState<'athlete' | 'parent' | 'coach'>('parent')
+  const role: 'coach' = 'coach'
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -23,9 +23,7 @@ export default function Register() {
       setError(err.message)
     } else {
       setSuccess(true)
-      if (role !== 'coach') {
-        setTimeout(() => navigate('/'), 2000)
-      }
+      setTimeout(() => navigate('/'), 2000)
     }
     setLoading(false)
   }
@@ -40,16 +38,13 @@ export default function Register() {
             </svg>
           </div>
           <h2 className="text-xl font-bold text-navy-900">Account Created!</h2>
-          {role === 'coach' ? (
-            <p className="mt-2 text-gray-600">
-              Your coach account is pending approval. Please contact the head coach or admin
-              to get your account approved.
-            </p>
-          ) : (
-            <p className="mt-2 text-gray-600">
-              Check your email to verify your account. Redirecting...
-            </p>
-          )}
+          <p className="mt-2 text-gray-600">
+            Your coach account is pending approval. Please contact the head coach or admin
+            to get your account approved.
+          </p>
+          <p className="mt-2 text-gray-600">
+            Check your email to verify your account. Redirecting...
+          </p>
           <Link to="/" className="btn-primary inline-block mt-4">Go to Home</Link>
         </div>
       </div>
@@ -105,30 +100,9 @@ export default function Register() {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">I am a...</label>
-            <div className="grid grid-cols-3 gap-2">
-              {(['parent', 'athlete', 'coach'] as const).map(r => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setRole(r)}
-                  className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
-                    role === r
-                      ? 'border-navy-800 bg-navy-800 text-white'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  {r.charAt(0).toUpperCase() + r.slice(1)}
-                </button>
-              ))}
-            </div>
-            {role === 'coach' && (
-              <p className="mt-2 text-xs text-gold-700 bg-gold-50 p-2 rounded">
-                ⚠️ Coach accounts require admin approval before you can make changes.
-              </p>
-            )}
-          </div>
+          <p className="text-xs text-gold-700 bg-gold-50 p-2 rounded">
+            ⚠️ Coach accounts require approval before you can make changes.
+          </p>
 
           <button type="submit" disabled={loading} className="btn-primary w-full">
             {loading ? 'Creating account...' : 'Create Account'}

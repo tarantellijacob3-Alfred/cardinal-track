@@ -59,6 +59,15 @@ export default function Dashboard() {
         )}
       </div>
 
+      {user && !isCoach && (
+        <div className="card border border-gold-200 bg-gold-50 text-navy-900">
+          <p className="font-medium">Coach approval pending</p>
+          <p className="text-sm text-gray-700 mt-1">
+            You have view-only access until an approved coach grants access.
+          </p>
+        </div>
+      )}
+
       {/* Quick Search */}
       <div>
         <h2 className="text-lg font-semibold text-navy-900 mb-3">Quick Athlete Search</h2>

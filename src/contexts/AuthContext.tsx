@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null }
   }
 
-  async function signUp(email: string, password: string, fullName: string, role: string) {
+  async function signUp(email: string, password: string, fullName: string, _role: string) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -78,13 +78,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
 
     if (!error && data.user) {
-      const isCoachSignUp = role === 'coach'
-      // Coach signups require approval before gaining coach access
+      // All signups are coach accounts pending approval
       await supabase
         .from('profiles')
         .update({
-          role: isCoachSignUp ? 'coach' : role,
-          approved: isCoachSignUp ? false : true,
+          role: 'coach',
+          approved: false,
           full_name: fullName
         } as Record<string, unknown>)
         .eq('id', data.user.id)
