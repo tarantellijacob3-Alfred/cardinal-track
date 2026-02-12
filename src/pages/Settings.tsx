@@ -4,24 +4,22 @@ import { useAuth } from '../contexts/AuthContext'
 import type { Profile } from '../types/database'
 
 export default function Settings() {
-  const { isCoach, isAdmin } = useAuth()
+  const { isCoach, isAdmin, profile: currentProfile } = useAuth()
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchProfiles()
-  }, [])
+    if (isCoach) {
+      fetchProfiles()
+    } else {
+      setLoading(false)
+    }
+  }, [isCoach])
 
   async function fetchProfiles() {
     setLoading(true)
-    // Migrate any legacy parent/athlete accounts to unapproved coaches
-    await supabase
-      .from('profiles')
-      .update({ role: 'coach', approved: false } as Record<string, unknown>)
-      .in('role', ['parent', 'athlete'])
-
     const { data } = await supabase
       .from('profiles')
       .select('*')
@@ -31,6 +29,7 @@ export default function Settings() {
   }
 
   async function approveCoach(profileId: string) {
+    if (!isAdmin) return
     setUpdatingId(profileId)
     const { error } = await supabase
       .from('profiles')
@@ -40,12 +39,16 @@ export default function Settings() {
     if (error) {
       alert('Failed to approve coach: ' + error.message)
     } else {
-      await fetchProfiles()
+      // Optimistic update: move from pending to coaches
+      setProfiles(prev => prev.map(p =>
+        p.id === profileId ? { ...p, role: 'coach' as const, approved: true } : p
+      ))
     }
     setUpdatingId(null)
   }
 
   async function disapproveCoach(profileId: string) {
+    if (!isAdmin) return
     setUpdatingId(profileId)
     const { error } = await supabase
       .from('profiles')
@@ -53,14 +56,18 @@ export default function Settings() {
       .eq('id', profileId)
 
     if (error) {
-      alert('Failed to disapprove coach: ' + error.message)
+      alert('Failed to disapprove: ' + error.message)
     } else {
-      await fetchProfiles()
+      // Optimistic update: move from pending to parents
+      setProfiles(prev => prev.map(p =>
+        p.id === profileId ? { ...p, role: 'parent' as const, approved: false } : p
+      ))
     }
     setUpdatingId(null)
   }
 
   async function demoteCoach(profileId: string) {
+    if (!isAdmin) return
     setUpdatingId(profileId)
     const { error } = await supabase
       .from('profiles')
@@ -70,12 +77,34 @@ export default function Settings() {
     if (error) {
       alert('Failed to demote coach: ' + error.message)
     } else {
-      await fetchProfiles()
+      // Optimistic update: move from coaches to parents
+      setProfiles(prev => prev.map(p =>
+        p.id === profileId ? { ...p, role: 'parent' as const, approved: false } : p
+      ))
+    }
+    setUpdatingId(null)
+  }
+
+  async function promoteToCoach(profileId: string) {
+    if (!isAdmin) return
+    setUpdatingId(profileId)
+    const { error } = await supabase
+      .from('profiles')
+      .update({ role: 'coach', approved: true } as Record<string, unknown>)
+      .eq('id', profileId)
+
+    if (error) {
+      alert('Failed to promote: ' + error.message)
+    } else {
+      setProfiles(prev => prev.map(p =>
+        p.id === profileId ? { ...p, role: 'coach' as const, approved: true } : p
+      ))
     }
     setUpdatingId(null)
   }
 
   async function deleteAccount(profileId: string) {
+    if (!isAdmin) return
     setUpdatingId(profileId)
     const { error } = await supabase
       .from('profiles')
@@ -86,21 +115,43 @@ export default function Settings() {
       alert('Failed to delete account: ' + error.message)
     } else {
       setConfirmDelete(null)
-      await fetchProfiles()
+      setProfiles(prev => prev.filter(p => p.id !== profileId))
     }
     setUpdatingId(null)
   }
 
-  const pendingCoachRequests = profiles.filter(p => p.approved === false && p.role !== 'parent')
-  const coaches = profiles.filter(p => p.approved === true && p.role === 'coach')
-  const admins = profiles.filter(p => p.role === 'admin')
-  const viewers = profiles.filter(p => p.role === 'parent')
-
+  // Parent/athlete view — just show own account details
   if (!isCoach) {
     return (
-      <div className="text-center py-12">
-        <h2 className="text-xl font-semibold text-navy-900">Access Denied</h2>
-        <p className="mt-2 text-gray-600">You need an approved coach account to access settings.</p>
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-2xl font-bold text-navy-900">Settings</h1>
+          <p className="text-gray-600 mt-1">Your account details</p>
+        </div>
+        <div className="card p-6">
+          <h2 className="text-lg font-semibold text-navy-900 mb-4">Account</h2>
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm text-gray-500">Name</p>
+              <p className="font-medium text-navy-900">{currentProfile?.full_name || 'Not set'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Email</p>
+              <p className="font-medium text-navy-900">{currentProfile?.email || 'Not set'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Role</p>
+              <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-medium">
+                Parent / Viewer
+              </span>
+            </div>
+          </div>
+          {currentProfile?.role === 'coach' && !currentProfile?.approved && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">Your coach account is pending approval from an admin.</p>
+            </div>
+          )}
+        </div>
       </div>
     )
   }
@@ -112,6 +163,10 @@ export default function Settings() {
       </div>
     )
   }
+
+  const pendingCoachRequests = profiles.filter(p => p.role === 'coach' && p.approved === false)
+  const coaches = profiles.filter(p => p.role === 'coach' && p.approved === true)
+  const parents = profiles.filter(p => p.role === 'parent')
 
   return (
     <div className="space-y-8">
@@ -139,24 +194,24 @@ export default function Settings() {
                   </p>
                   <p className="text-sm text-gray-500">{p.email}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => approveCoach(p.id)}
-                    disabled={updatingId === p.id}
-                    className="btn-primary text-sm px-3 py-1"
-                  >
-                    {updatingId === p.id ? 'Approving...' : 'Approve'}
-                  </button>
-                  {isAdmin && (
+                {isAdmin && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => approveCoach(p.id)}
+                      disabled={updatingId === p.id}
+                      className="btn-primary text-sm px-3 py-1"
+                    >
+                      {updatingId === p.id ? 'Updating...' : 'Approve'}
+                    </button>
                     <button
                       onClick={() => disapproveCoach(p.id)}
                       disabled={updatingId === p.id}
                       className="text-sm px-3 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
                     >
-                      Disapprove
+                      {updatingId === p.id ? 'Updating...' : 'Disapprove'}
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -228,86 +283,70 @@ export default function Settings() {
         )}
       </div>
 
-      {/* Admins Section */}
-      {admins.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-navy-900 mb-3">
-            Admins ({admins.length})
-          </h2>
-          <div className="card divide-y divide-gray-100">
-            {admins.map(admin => (
-              <div key={admin.id} className="py-3 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-navy-900">
-                    {admin.full_name || 'Unnamed'}
-                  </p>
-                  <p className="text-sm text-gray-500">{admin.email}</p>
-                </div>
-                <span className="text-xs bg-navy-800 text-white px-2 py-0.5 rounded-full font-medium">
-                  Admin
-                </span>
-              </div>
-            ))}
+      {/* Parents Section */}
+      <div>
+        <h2 className="text-lg font-semibold text-navy-900 mb-3">
+          Parents ({parents.length})
+        </h2>
+        {parents.length === 0 ? (
+          <div className="card text-center py-6">
+            <p className="text-gray-400">No parent accounts</p>
           </div>
-        </div>
-      )}
-
-      {/* Viewers (Disapproved/Demoted) */}
-      {isAdmin && viewers.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-navy-900 mb-3">
-            Viewers / Parents ({viewers.length})
-          </h2>
+        ) : (
           <div className="card divide-y divide-gray-100">
-            {viewers.map(viewer => (
-              <div key={viewer.id} className="py-3 flex items-center justify-between">
+            {parents.map(parent => (
+              <div key={parent.id} className="py-3 flex items-center justify-between">
                 <div>
                   <p className="font-medium text-navy-900">
-                    {viewer.full_name || 'Unnamed'}
+                    {parent.full_name || 'Unnamed'}
                   </p>
-                  <p className="text-sm text-gray-500">{viewer.email}</p>
+                  <p className="text-sm text-gray-500">{parent.email}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-medium">
-                    Viewer
+                    Parent
                   </span>
-                  <button
-                    onClick={() => approveCoach(viewer.id)}
-                    disabled={updatingId === viewer.id}
-                    className="text-xs px-2 py-0.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
-                  >
-                    Promote to Coach
-                  </button>
-                  {confirmDelete === viewer.id ? (
-                    <div className="flex items-center gap-1">
+                  {isAdmin && (
+                    <>
                       <button
-                        onClick={() => deleteAccount(viewer.id)}
-                        disabled={updatingId === viewer.id}
-                        className="text-xs px-2 py-0.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        onClick={() => promoteToCoach(parent.id)}
+                        disabled={updatingId === parent.id}
+                        className="text-xs px-2 py-0.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
                       >
-                        Confirm
+                        Promote to Coach
                       </button>
-                      <button
-                        onClick={() => setConfirmDelete(null)}
-                        className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setConfirmDelete(viewer.id)}
-                      className="text-xs px-2 py-0.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
-                    >
-                      Delete
-                    </button>
+                      {confirmDelete === parent.id ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => deleteAccount(parent.id)}
+                            disabled={updatingId === parent.id}
+                            className="text-xs px-2 py-0.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            onClick={() => setConfirmDelete(null)}
+                            className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDelete(parent.id)}
+                          className="text-xs px-2 py-0.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
