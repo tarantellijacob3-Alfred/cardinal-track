@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Navbar() {
-  const { user, profile, isCoach, signOut } = useAuth()
+  const { user, profile, isCoach, isAdmin, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -147,7 +147,7 @@ export default function Navbar() {
               <div className="space-y-2">
                 <p className="text-sm text-gray-300">
                   {profile?.full_name || user.email}
-                  {isCoach && ' (Coach)'}
+                  {isAdmin ? ' (Admin)' : isCoach ? ' (Coach)' : ''}
                 </p>
                 <button
                   onClick={() => { handleSignOut(); setMobileMenuOpen(false) }}

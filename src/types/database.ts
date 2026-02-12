@@ -98,7 +98,7 @@ export interface Profile {
   id: string
   email: string | null
   full_name: string | null
-  role: 'coach' | 'parent' | 'athlete'
+  role: 'admin' | 'coach' | 'parent' | 'athlete'
   approved: boolean
   created_at: string
 }

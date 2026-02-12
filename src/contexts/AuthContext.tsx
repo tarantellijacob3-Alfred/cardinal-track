@@ -9,6 +9,7 @@ interface AuthContextType {
   profile: Profile | null
   loading: boolean
   isCoach: boolean
+  isAdmin: boolean
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>
   signUp: (email: string, password: string, fullName: string, role: string) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
@@ -23,7 +24,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const isCoach = profile?.role === 'coach' && profile?.approved === true
+  const ADMIN_EMAILS = ['tarantellijacob@gmail.com', 'ttarantelli@gmail.com']
+  const isAdmin = profile?.role === 'admin' || (profile?.email != null && ADMIN_EMAILS.includes(profile.email))
+  const isCoach = isAdmin || (profile?.role === 'coach' && profile?.approved === true)
 
   async function fetchProfile(userId: string) {
     const { data } = await supabase
@@ -99,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user, session, profile, loading, isCoach,
+      user, session, profile, loading, isCoach, isAdmin,
       signIn, signUp, signOut, refreshProfile
     }}>
       {children}
