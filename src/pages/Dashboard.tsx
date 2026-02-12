@@ -8,7 +8,7 @@ import SearchBar from '../components/SearchBar'
 import AthleteCard from '../components/AthleteCard'
 
 export default function Dashboard() {
-  const { user, isCoach } = useAuth()
+  const { user, isCoach, profile } = useAuth()
   const { meets, loading: meetsLoading } = useMeets()
   const { athletes, loading: athletesLoading } = useAthletes()
   const [search, setSearch] = useState('')
@@ -59,11 +59,11 @@ export default function Dashboard() {
         )}
       </div>
 
-      {user && !isCoach && (
+      {user && !isCoach && profile?.role === 'coach' && !profile?.approved && (
         <div className="card border border-gold-200 bg-gold-50 text-navy-900">
           <p className="font-medium">Coach approval pending</p>
           <p className="text-sm text-gray-700 mt-1">
-            You have view-only access until an approved coach grants access.
+            You have view-only access until an admin approves your account.
           </p>
         </div>
       )}
