@@ -4,9 +4,10 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import type { Team } from '../types/database'
 
+
 export default function JoinTeam() {
   const navigate = useNavigate()
-  const { user, profile, refreshProfile } = useAuth()
+  const { user, profile, memberships, refreshProfile } = useAuth()
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
   const [joining, setJoining] = useState(false)
@@ -46,12 +47,24 @@ export default function JoinTeam() {
     setJoining(true)
 
     try {
-      const { error: updateErr } = await supabase
+      // Add membership
+      const { error: memberErr } = await supabase
+        .from('team_members')
+        .upsert({
+          profile_id: user!.id,
+          team_id: team.id,
+          role: profile?.role === 'coach' ? 'coach' : 'parent',
+          approved: profile?.role !== 'coach', // parents auto-approved, coaches need approval
+          is_owner: false,
+        } as Record<string, unknown>, { onConflict: 'profile_id,team_id' })
+
+      if (memberErr) throw memberErr
+
+      // Backward compat
+      await supabase
         .from('profiles')
         .update({ team_id: team.id } as Record<string, unknown>)
-        .eq('id', user.id)
-
-      if (updateErr) throw updateErr
+        .eq('id', user!.id)
 
       await refreshProfile()
       navigate(`/t/${team.slug}`)
@@ -76,8 +89,8 @@ export default function JoinTeam() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-navy-900">Join a Team</h1>
           <p className="text-gray-500 mt-1">
-            {profile?.team_id
-              ? 'Switch to a different team'
+            {memberships.length > 0
+              ? 'Join another team or switch'
               : 'Select a team to follow'}
           </p>
         </div>
@@ -95,7 +108,7 @@ export default function JoinTeam() {
         ) : (
           <div className="space-y-3">
             {teams.map(team => {
-              const isCurrent = profile?.team_id === team.id
+              const isCurrent = memberships.some(m => m.team_id === team.id)
               return (
                 <div
                   key={team.id}

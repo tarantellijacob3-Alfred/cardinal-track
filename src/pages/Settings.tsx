@@ -227,8 +227,11 @@ function CollapsibleSection({
 }
 
 export default function Settings() {
-  const { isCoach, isAdmin, profile: currentProfile } = useAuth()
+  const { isCoach, isAdmin, isSuperAdmin, isCoachForTeam, getMembership, profile: currentProfile } = useAuth()
   const { team, teamId, guestMode } = useTeam()
+  const membership = getMembership(teamId)
+  // Team-level admin: global admin, super admin, team owner, or approved coach on this team
+  const isTeamAdmin = isAdmin || isSuperAdmin || membership?.is_owner === true || (membership?.role === 'coach' && membership?.approved === true)
   const { seasons, loading: seasonsLoading, addSeason, updateSeason, deleteSeason, setActiveSeason, refetch: refetchSeasons } = useSeasons()
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
@@ -244,7 +247,7 @@ export default function Settings() {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
   const [sectionsInitialized, setSectionsInitialized] = useState(false)
 
-  const effectiveIsCoach = isCoach && !guestMode
+  const effectiveIsCoach = (isCoachForTeam(teamId) || isCoach) && !guestMode
 
   useEffect(() => {
     if (effectiveIsCoach) {
@@ -274,90 +277,93 @@ export default function Settings() {
 
   async function fetchProfiles() {
     setLoading(true)
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
+    // Fetch team_members for this team, then fetch their profiles
+    const { data: members } = await supabase
+      .from('team_members')
+      .select('profile_id, role, approved')
       .eq('team_id', teamId)
-      .order('full_name')
-    setProfiles((data as Profile[]) || [])
+
+    if (members && members.length > 0) {
+      const profileIds = members.map((m: { profile_id: string }) => m.profile_id)
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', profileIds)
+        .order('full_name')
+
+      // Merge team_members role/approved into profile objects for display
+      const merged = (profileData || []).map((p: Profile) => {
+        const m = members.find((m: { profile_id: string }) => m.profile_id === p.id)
+        return {
+          ...p,
+          role: m?.role || p.role,
+          approved: m?.approved ?? p.approved,
+        } as Profile
+      })
+      setProfiles(merged)
+    } else {
+      setProfiles([])
+    }
     setLoading(false)
   }
 
-  async function approveCoach(profileId: string) {
-    if (!isAdmin) return
+  async function updateMemberRole(profileId: string, role: string, approved: boolean) {
     setUpdatingId(profileId)
-    const { error } = await supabase
+    // Update team_members
+    const { error: memberErr } = await supabase
+      .from('team_members')
+      .update({ role, approved } as Record<string, unknown>)
+      .eq('profile_id', profileId)
+      .eq('team_id', teamId)
+
+    if (memberErr) {
+      alert('Failed to update: ' + memberErr.message)
+      setUpdatingId(null)
+      return
+    }
+
+    // Backward compat: update profiles too
+    await supabase
       .from('profiles')
-      .update({ role: 'coach', approved: true } as Record<string, unknown>)
+      .update({ role, approved } as Record<string, unknown>)
       .eq('id', profileId)
 
-    if (error) {
-      alert('Failed to approve coach: ' + error.message)
-    } else {
-      setProfiles(prev => prev.map(p =>
-        p.id === profileId ? { ...p, role: 'coach' as const, approved: true } : p
-      ))
-    }
+    setProfiles(prev => prev.map(p =>
+      p.id === profileId ? { ...p, role: role as Profile['role'], approved } : p
+    ))
     setUpdatingId(null)
+  }
+
+  async function approveCoach(profileId: string) {
+    if (!isTeamAdmin) return
+    await updateMemberRole(profileId, 'coach', true)
   }
 
   async function disapproveCoach(profileId: string) {
-    if (!isAdmin) return
-    setUpdatingId(profileId)
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role: 'parent', approved: false } as Record<string, unknown>)
-      .eq('id', profileId)
-
-    if (error) {
-      alert('Failed to disapprove: ' + error.message)
-    } else {
-      setProfiles(prev => prev.map(p =>
-        p.id === profileId ? { ...p, role: 'parent' as const, approved: false } : p
-      ))
-    }
-    setUpdatingId(null)
+    if (!isTeamAdmin) return
+    await updateMemberRole(profileId, 'parent', false)
   }
 
   async function demoteCoach(profileId: string) {
-    if (!isAdmin) return
-    setUpdatingId(profileId)
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role: 'parent', approved: false } as Record<string, unknown>)
-      .eq('id', profileId)
-
-    if (error) {
-      alert('Failed to demote coach: ' + error.message)
-    } else {
-      setProfiles(prev => prev.map(p =>
-        p.id === profileId ? { ...p, role: 'parent' as const, approved: false } : p
-      ))
-    }
-    setUpdatingId(null)
+    if (!isTeamAdmin) return
+    await updateMemberRole(profileId, 'parent', false)
   }
 
   async function promoteToCoach(profileId: string) {
-    if (!isAdmin) return
-    setUpdatingId(profileId)
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role: 'coach', approved: true } as Record<string, unknown>)
-      .eq('id', profileId)
-
-    if (error) {
-      alert('Failed to promote: ' + error.message)
-    } else {
-      setProfiles(prev => prev.map(p =>
-        p.id === profileId ? { ...p, role: 'coach' as const, approved: true } : p
-      ))
-    }
-    setUpdatingId(null)
+    if (!isTeamAdmin) return
+    await updateMemberRole(profileId, 'coach', true)
   }
 
   async function deleteAccount(profileId: string) {
-    if (!isAdmin) return
+    if (!isTeamAdmin) return
     setUpdatingId(profileId)
+    // Remove from team_members first
+    await supabase
+      .from('team_members')
+      .delete()
+      .eq('profile_id', profileId)
+      .eq('team_id', teamId)
+
     const { error } = await supabase
       .from('profiles')
       .delete()
@@ -578,7 +584,7 @@ export default function Settings() {
                   </p>
                   <p className="text-sm text-gray-500 truncate">{p.email}</p>
                 </div>
-                {isAdmin && (
+                {isTeamAdmin && (
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => approveCoach(p.id)}
@@ -628,7 +634,7 @@ export default function Settings() {
                   <span className="text-xs bg-gold-500 text-navy-900 px-2 py-0.5 rounded-full font-medium">
                     Coach
                   </span>
-                  {isAdmin && (
+                  {isTeamAdmin && (
                     <>
                       <button
                         onClick={() => demoteCoach(coach.id)}
@@ -696,7 +702,7 @@ export default function Settings() {
                   <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-medium">
                     Parent
                   </span>
-                  {isAdmin && (
+                  {isTeamAdmin && (
                     <>
                       <button
                         onClick={() => promoteToCoach(parent.id)}

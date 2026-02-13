@@ -189,7 +189,18 @@ export default function TeamOnboarding() {
 
       if (teamErr || !team) throw teamErr || new Error('Failed to create team')
 
-      // Set coach's team_id
+      // Add creator as coach + owner in team_members
+      await supabase
+        .from('team_members')
+        .insert({
+          profile_id: currentUser.user.id,
+          team_id: (team as { id: string }).id,
+          role: 'coach',
+          approved: true,
+          is_owner: true,
+        } as Record<string, unknown>)
+
+      // Also update profiles.team_id for backward compat
       await supabase
         .from('profiles')
         .update({

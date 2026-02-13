@@ -190,6 +190,24 @@ export type TFRRSMeetLinkInsert = Omit<TFRRSMeetLink, 'id' | 'created_at'> & {
 
 export type TFRRSMeetLinkUpdate = Partial<TFRRSMeetLinkInsert>
 
+// Team Members (many-to-many)
+export interface TeamMember {
+  id: string
+  profile_id: string
+  team_id: string
+  role: 'coach' | 'parent' | 'athlete'
+  approved: boolean
+  is_owner: boolean
+  created_at: string
+}
+
+export type TeamMemberInsert = Omit<TeamMember, 'id' | 'created_at'> & {
+  id?: string
+  created_at?: string
+}
+
+export type TeamMemberUpdate = Partial<TeamMemberInsert>
+
 // Extended types for joined queries
 export interface MeetEntryWithDetails extends MeetEntry {
   athletes: Athlete

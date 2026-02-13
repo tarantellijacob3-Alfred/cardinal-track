@@ -31,9 +31,20 @@ export default function TeamRegister() {
       return
     }
 
-    // Get the current user and set their team_id
+    // Get the current user and add to team_members
     const { data: { user } } = await supabase.auth.getUser()
     if (user && teamId) {
+      await supabase
+        .from('team_members')
+        .upsert({
+          profile_id: user.id,
+          team_id: teamId,
+          role: 'coach',
+          approved: false,
+          is_owner: false,
+        } as Record<string, unknown>, { onConflict: 'profile_id,team_id' })
+
+      // Backward compat
       await supabase
         .from('profiles')
         .update({ team_id: teamId } as Record<string, unknown>)

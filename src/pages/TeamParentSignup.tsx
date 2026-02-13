@@ -32,7 +32,7 @@ export default function TeamParentSignup() {
       if (signUpErr) throw signUpErr
       if (!data.user) throw new Error('Signup failed')
 
-      // Update profile: parent role, approved, with team
+      // Update profile
       await supabase
         .from('profiles')
         .update({
@@ -42,6 +42,19 @@ export default function TeamParentSignup() {
           team_id: teamId || null,
         } as Record<string, unknown>)
         .eq('id', data.user.id)
+
+      // Add to team_members
+      if (teamId) {
+        await supabase
+          .from('team_members')
+          .upsert({
+            profile_id: data.user.id,
+            team_id: teamId,
+            role: 'parent',
+            approved: true,
+            is_owner: false,
+          } as Record<string, unknown>, { onConflict: 'profile_id,team_id' })
+      }
 
       setSuccess(true)
       setTimeout(() => navigate(teamPath('/')), 1500)

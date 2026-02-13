@@ -2,29 +2,34 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTeam } from '../hooks/useTeam'
-import { supabase } from '../lib/supabase'
 
 /**
- * TeamGuard checks if a logged-in user is viewing a team that isn't their own.
+ * TeamGuard checks if a logged-in user is viewing a team they're not a member of.
  * If so, it shows a modal asking them to continue as guest or go back.
- * Renders nothing if the user is on their own team or not logged in.
+ * Renders nothing if the user is a member of this team or not logged in.
  */
 export default function TeamGuard() {
-  const { user, profile } = useAuth()
+  const { user, memberships } = useAuth()
   const { team, teamId, guestMode, setGuestMode } = useTeam()
   const navigate = useNavigate()
   const [showModal, setShowModal] = useState(false)
-  const [userTeamName, setUserTeamName] = useState<string | null>(null)
 
   useEffect(() => {
-    // Only check if user is logged in, has a team, and team is loaded
-    if (!user || !profile?.team_id || !teamId) {
+    // Only check if user is logged in and team is loaded
+    if (!user || !teamId) {
       setShowModal(false)
       return
     }
 
-    // If they're on their own team, no warning needed
-    if (profile.team_id === teamId) {
+    // If they have a membership for this team, no warning needed
+    const isMember = memberships.some(m => m.team_id === teamId)
+    if (isMember) {
+      setShowModal(false)
+      return
+    }
+
+    // If they have no memberships at all (brand new user), no warning
+    if (memberships.length === 0) {
       setShowModal(false)
       return
     }
@@ -34,19 +39,9 @@ export default function TeamGuard() {
       return
     }
 
-    // They're on a different team — fetch their team name and show modal
-    async function fetchUserTeamName() {
-      const { data } = await supabase
-        .from('teams')
-        .select('name')
-        .eq('id', profile!.team_id!)
-        .single()
-      if (data) setUserTeamName(data.name)
-      setShowModal(true)
-    }
-
-    fetchUserTeamName()
-  }, [user, profile?.team_id, teamId, guestMode, setGuestMode])
+    // They're on a team they're not a member of — show modal
+    setShowModal(true)
+  }, [user, memberships, teamId, guestMode, setGuestMode])
 
   if (!showModal) return null
 
@@ -60,11 +55,10 @@ export default function TeamGuard() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-navy-900 mb-2">Different Team</h2>
+          <h2 className="text-xl font-bold text-navy-900 mb-2">Not Your Team</h2>
           <p className="text-gray-600 mb-6">
-            You're signed in to <span className="font-semibold text-navy-800">{userTeamName || 'your team'}</span>.
-            Are you sure you want to view <span className="font-semibold text-navy-800">{team?.name || 'this team'}</span>?
-            You'll be browsing as a guest.
+            You're not a member of <span className="font-semibold text-navy-800">{team?.name || 'this team'}</span>.
+            You can browse as a guest (view only).
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
             <button
