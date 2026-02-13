@@ -7,12 +7,15 @@ import SeasonModal from '../components/SeasonModal'
 import type { Profile, Season, Team } from '../types/database'
 
 function TeamBrandingSection({ team, teamId }: { team: Team | null; teamId: string | null }) {
+  const [teamName, setTeamName] = useState(team?.name || '')
+  const [schoolName, setSchoolName] = useState(team?.school_name || '')
   const [primaryColor, setPrimaryColor] = useState(team?.primary_color || '#1e3a5f')
   const [secondaryColor, setSecondaryColor] = useState(team?.secondary_color || '#c5a900')
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(team?.logo_url || null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [expanded, setExpanded] = useState(false)
 
   if (!team || !teamId) return null
 
@@ -48,6 +51,8 @@ function TeamBrandingSection({ team, teamId }: { team: Team | null; teamId: stri
       const { error } = await supabase
         .from('teams')
         .update({
+          name: teamName,
+          school_name: schoolName,
           primary_color: primaryColor,
           secondary_color: secondaryColor,
           logo_url: logoUrl,
@@ -59,7 +64,7 @@ function TeamBrandingSection({ team, teamId }: { team: Team | null; teamId: stri
       } else {
         setSaved(true)
         setTimeout(() => setSaved(false), 2000)
-        // Reload to reflect new colors
+        // Reload to reflect changes
         setTimeout(() => window.location.reload(), 500)
       }
     } catch (err) {
@@ -71,101 +76,136 @@ function TeamBrandingSection({ team, teamId }: { team: Team | null; teamId: stri
 
   return (
     <div className="card">
-      <h2 className="text-lg font-semibold text-navy-900 mb-4">Team Branding</h2>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-2 w-full text-left"
+      >
+        <h2 className="text-lg font-semibold text-navy-900">Team Profile</h2>
+        <ChevronIcon expanded={expanded} />
+      </button>
 
-      <div className="space-y-4">
-        {/* Logo */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Team Logo</label>
-          <div className="flex items-center space-x-4">
-            {logoPreview ? (
-              <img src={logoPreview} alt="Logo" className="w-16 h-16 object-contain rounded-lg border border-gray-200" />
-            ) : (
-              <div
-                className="w-16 h-16 rounded-lg flex items-center justify-center text-white font-bold text-xl"
-                style={{ backgroundColor: primaryColor }}
-              >
-                {team.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleLogoChange}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-navy-50 file:text-navy-700 hover:file:bg-navy-100"
-              />
-              <p className="text-xs text-gray-400 mt-1">PNG, JPG, or SVG recommended</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Colors */}
-        <div className="grid grid-cols-2 gap-4">
+      <div
+        className="overflow-hidden transition-all duration-300 ease-in-out"
+        style={{ maxHeight: expanded ? '2000px' : '0', opacity: expanded ? 1 : 0 }}
+      >
+        <div className="space-y-4 pt-4">
+          {/* Team Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Primary Color</label>
-            <div className="flex items-center space-x-2">
-              <input
-                type="color"
-                value={primaryColor}
-                onChange={e => setPrimaryColor(e.target.value)}
-                className="w-10 h-10 rounded border border-gray-200 cursor-pointer"
-              />
-              <input
-                type="text"
-                value={primaryColor}
-                onChange={e => setPrimaryColor(e.target.value)}
-                className="input flex-1 text-sm"
-              />
-            </div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Team Name</label>
+            <input
+              type="text"
+              value={teamName}
+              onChange={e => setTeamName(e.target.value)}
+              className="input"
+              placeholder="e.g. Eagles Track & Field"
+            />
           </div>
+
+          {/* School Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Secondary Color</label>
-            <div className="flex items-center space-x-2">
-              <input
-                type="color"
-                value={secondaryColor}
-                onChange={e => setSecondaryColor(e.target.value)}
-                className="w-10 h-10 rounded border border-gray-200 cursor-pointer"
-              />
-              <input
-                type="text"
-                value={secondaryColor}
-                onChange={e => setSecondaryColor(e.target.value)}
-                className="input flex-1 text-sm"
-              />
-            </div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">School Name</label>
+            <input
+              type="text"
+              value={schoolName}
+              onChange={e => setSchoolName(e.target.value)}
+              className="input"
+              placeholder="e.g. Lincoln High School"
+            />
           </div>
-        </div>
 
-        {/* Preview */}
-        <div className="border border-gray-200 rounded-lg p-4">
-          <p className="text-xs text-gray-400 mb-2">Preview</p>
-          <div className="flex items-center space-x-3">
-            {logoPreview ? (
-              <img src={logoPreview} alt="Preview" className="w-10 h-10 object-contain" />
-            ) : (
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
-                style={{ backgroundColor: primaryColor }}
-              >
-                {team.name.charAt(0).toUpperCase()}
+          {/* Logo */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Team Logo</label>
+            <div className="flex items-center space-x-4">
+              {logoPreview ? (
+                <img src={logoPreview} alt="Logo" className="w-16 h-16 object-contain rounded-lg border border-gray-200" />
+              ) : (
+                <div
+                  className="w-16 h-16 rounded-lg flex items-center justify-center text-white font-bold text-xl"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  {teamName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-navy-50 file:text-navy-700 hover:file:bg-navy-100"
+                />
+                <p className="text-xs text-gray-400 mt-1">PNG, JPG, or SVG recommended</p>
               </div>
-            )}
-            <div>
-              <p className="font-bold" style={{ color: primaryColor }}>{team.name}</p>
-              <p className="text-xs" style={{ color: secondaryColor }}>{team.school_name}</p>
             </div>
           </div>
-        </div>
 
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="btn-primary min-h-[44px]"
-        >
-          {saving ? 'Saving...' : saved ? '✓ Saved!' : 'Save Branding'}
-        </button>
+          {/* Colors */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Primary Color</label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="color"
+                  value={primaryColor}
+                  onChange={e => setPrimaryColor(e.target.value)}
+                  className="w-10 h-10 rounded border border-gray-200 cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={primaryColor}
+                  onChange={e => setPrimaryColor(e.target.value)}
+                  className="input flex-1 text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Secondary Color</label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="color"
+                  value={secondaryColor}
+                  onChange={e => setSecondaryColor(e.target.value)}
+                  className="w-10 h-10 rounded border border-gray-200 cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={secondaryColor}
+                  onChange={e => setSecondaryColor(e.target.value)}
+                  className="input flex-1 text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Preview */}
+          <div className="border border-gray-200 rounded-lg p-4">
+            <p className="text-xs text-gray-400 mb-2">Preview</p>
+            <div className="flex items-center space-x-3">
+              {logoPreview ? (
+                <img src={logoPreview} alt="Preview" className="w-10 h-10 object-contain" />
+              ) : (
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  {teamName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <p className="font-bold" style={{ color: primaryColor }}>{teamName}</p>
+                <p className="text-xs" style={{ color: secondaryColor }}>{schoolName}</p>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="btn-primary min-h-[44px]"
+          >
+            {saving ? 'Saving...' : saved ? '✓ Saved!' : 'Save Team Profile'}
+          </button>
+        </div>
       </div>
     </div>
   )
