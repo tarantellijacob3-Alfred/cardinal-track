@@ -24,6 +24,8 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminTeams from './pages/admin/AdminTeams'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminSeasons from './pages/admin/AdminSeasons'
+import InstallPrompt from './components/InstallPrompt'
+import OfflineIndicator from './components/OfflineIndicator'
 
 /** Default team slug for backward-compatible redirects */
 const DEFAULT_SLUG = 'bishop-snyder'
@@ -32,6 +34,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <OfflineIndicator />
+        <InstallPrompt />
         <Routes>
           {/* Root → Bishop Snyder (since domain is bishop-snyder-track.vercel.app) */}
           {/* When we get a TrackBoard domain, change back to <Landing /> */}
