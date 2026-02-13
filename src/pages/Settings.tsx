@@ -6,6 +6,61 @@ import { useSeasons } from '../hooks/useSeasons'
 import SeasonModal from '../components/SeasonModal'
 import type { Profile, Season } from '../types/database'
 
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </svg>
+  )
+}
+
+function CollapsibleSection({
+  title,
+  count,
+  sectionKey,
+  expanded,
+  onToggle,
+  headerRight,
+  children,
+}: {
+  title: string
+  count: number
+  sectionKey: string
+  expanded: boolean
+  onToggle: (key: string) => void
+  headerRight?: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <button
+          onClick={() => onToggle(sectionKey)}
+          className="flex items-center gap-2 flex-1 min-w-0 text-left group"
+        >
+          <h2 className="text-lg font-semibold text-navy-900 truncate">
+            {title}{' '}
+            <span className="text-gray-400 font-normal">({count})</span>
+          </h2>
+          <ChevronIcon expanded={expanded} />
+        </button>
+        {headerRight}
+      </div>
+      <div
+        className="overflow-hidden transition-all duration-300 ease-in-out"
+        style={{ maxHeight: expanded ? '2000px' : '0', opacity: expanded ? 1 : 0 }}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
+
 export default function Settings() {
   const { isCoach, isAdmin, profile: currentProfile } = useAuth()
   const { guestMode } = useTeam()
@@ -20,6 +75,10 @@ export default function Settings() {
   const [editingSeason, setEditingSeason] = useState<Season | null>(null)
   const [confirmDeleteSeason, setConfirmDeleteSeason] = useState<string | null>(null)
 
+  // Collapsible sections state
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
+  const [sectionsInitialized, setSectionsInitialized] = useState(false)
+
   const effectiveIsCoach = isCoach && !guestMode
 
   useEffect(() => {
@@ -29,6 +88,24 @@ export default function Settings() {
       setLoading(false)
     }
   }, [effectiveIsCoach])
+
+  // Initialize expanded state once profiles load
+  useEffect(() => {
+    if (!loading && !sectionsInitialized) {
+      const pendingCount = profiles.filter(p => p.role === 'coach' && p.approved === false).length
+      setExpandedSections({
+        seasons: false,
+        pending: pendingCount > 0,
+        coaches: false,
+        parents: false,
+      })
+      setSectionsInitialized(true)
+    }
+  }, [loading, profiles, sectionsInitialized])
+
+  function toggleSection(key: string) {
+    setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }))
+  }
 
   async function fetchProfiles() {
     setLoading(true)
@@ -197,29 +274,31 @@ export default function Settings() {
   const parents = profiles.filter(p => p.role === 'parent')
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-navy-900">Settings</h1>
         <p className="text-gray-600 mt-1">Manage user accounts, permissions, and seasons</p>
       </div>
 
       {/* ═══ Season Management ═══ */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-navy-900">
-            Season Management ({seasons.length})
-          </h2>
+      <CollapsibleSection
+        title="Season Management"
+        count={seasons.length}
+        sectionKey="seasons"
+        expanded={!!expandedSections.seasons}
+        onToggle={toggleSection}
+        headerRight={
           <button
             onClick={() => { setEditingSeason(null); setShowSeasonModal(true) }}
-            className="btn-primary text-sm flex items-center space-x-1 min-h-[44px]"
+            className="btn-primary text-sm flex items-center space-x-1 min-h-[44px] shrink-0"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             <span>New Season</span>
           </button>
-        </div>
-
+        }
+      >
         {seasonsLoading ? (
           <div className="flex justify-center py-6">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-navy-800" />
@@ -297,7 +376,7 @@ export default function Settings() {
             ))}
           </div>
         )}
-      </div>
+      </CollapsibleSection>
 
       {/* Season Modal */}
       {showSeasonModal && (
@@ -309,10 +388,13 @@ export default function Settings() {
       )}
 
       {/* Pending Coach Requests */}
-      <div>
-        <h2 className="text-lg font-semibold text-navy-900 mb-3">
-          Pending Coach Requests ({pendingCoachRequests.length})
-        </h2>
+      <CollapsibleSection
+        title="Pending Coach Requests"
+        count={pendingCoachRequests.length}
+        sectionKey="pending"
+        expanded={!!expandedSections.pending}
+        onToggle={toggleSection}
+      >
         {pendingCoachRequests.length === 0 ? (
           <div className="card text-center py-6">
             <p className="text-gray-400">No pending requests</p>
@@ -349,13 +431,16 @@ export default function Settings() {
             ))}
           </div>
         )}
-      </div>
+      </CollapsibleSection>
 
       {/* Coaches Section */}
-      <div>
-        <h2 className="text-lg font-semibold text-navy-900 mb-3">
-          Coaches ({coaches.length})
-        </h2>
+      <CollapsibleSection
+        title="Coaches"
+        count={coaches.length}
+        sectionKey="coaches"
+        expanded={!!expandedSections.coaches}
+        onToggle={toggleSection}
+      >
         {coaches.length === 0 ? (
           <div className="card text-center py-6">
             <p className="text-gray-400">No coaches found</p>
@@ -414,13 +499,16 @@ export default function Settings() {
             ))}
           </div>
         )}
-      </div>
+      </CollapsibleSection>
 
       {/* Parents Section */}
-      <div>
-        <h2 className="text-lg font-semibold text-navy-900 mb-3">
-          Parents ({parents.length})
-        </h2>
+      <CollapsibleSection
+        title="Parents"
+        count={parents.length}
+        sectionKey="parents"
+        expanded={!!expandedSections.parents}
+        onToggle={toggleSection}
+      >
         {parents.length === 0 ? (
           <div className="card text-center py-6">
             <p className="text-gray-400">No parent accounts</p>
@@ -479,7 +567,7 @@ export default function Settings() {
             ))}
           </div>
         )}
-      </div>
+      </CollapsibleSection>
     </div>
   )
 }
