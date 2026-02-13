@@ -91,7 +91,7 @@ export default function Navbar() {
           {/* Auth buttons */}
           <div className="hidden md:flex items-center space-x-3">
             <Link
-              to="/"
+              to="/welcome"
               className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
               title="Back to TrackBoard directory"
             >
@@ -195,7 +195,7 @@ export default function Navbar() {
               </Link>
             )}
             <Link
-              to="/"
+              to="/welcome"
               className="block mt-2 text-center text-sm text-gray-500 hover:text-gray-300 py-2"
               onClick={() => setMobileMenuOpen(false)}
             >
