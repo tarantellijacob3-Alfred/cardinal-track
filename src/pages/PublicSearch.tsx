@@ -113,7 +113,7 @@ export default function PublicSearch() {
                           {athlete.level} {athlete.gender}
                           {athlete.grade ? ` · Grade ${athlete.grade}` : ''}
                           {' · '}
-                          {new Set(allEntries.filter(e => e.athlete_id === athlete.id).map(e => e.meet_id)).size} meets
+                          <span className="whitespace-nowrap">{(() => { const c = new Set(allEntries.filter(e => e.athlete_id === athlete.id).map(e => e.meet_id)).size; return `${c} ${c === 1 ? 'meet' : 'meets'}`; })()}</span>
                         </p>
                       </div>
                     </div>
