@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useMemo, useEffect, useCallback } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useTeam, useTeamPath } from '../hooks/useTeam'
 import { useAuth } from '../contexts/AuthContext'
@@ -8,18 +8,43 @@ import SearchBar from '../components/SearchBar'
 import type { Athlete, Meet, MeetEntryWithDetails } from '../types/database'
 
 export default function PublicSearch() {
-  const [search, setSearch] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [search, setSearch] = useState(searchParams.get('q') || '')
   const [athletes, setAthletes] = useState<Athlete[]>([])
   const [meets, setMeets] = useState<Meet[]>([])
   const [allEntries, setAllEntries] = useState<MeetEntryWithDetails[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null)
   const { team } = useTeam()
   const teamPath = useTeamPath()
   const { user } = useAuth()
   const { guestMode } = useTeam()
   const { isFavorite, toggleFavorite } = useFavorites()
   const showFavorites = user && !guestMode
+
+  // Derive selected athlete from URL param so browser back works
+  const selectedAthleteId = searchParams.get('athlete')
+  const selectedAthlete = useMemo(
+    () => athletes.find(a => a.id === selectedAthleteId) || null,
+    [athletes, selectedAthleteId]
+  )
+
+  const selectAthlete = useCallback((athlete: Athlete) => {
+    setSearchParams({ q: search, athlete: athlete.id }, { replace: false })
+  }, [search, setSearchParams])
+
+  const clearAthlete = useCallback(() => {
+    if (search) {
+      setSearchParams({ q: search }, { replace: false })
+    } else {
+      setSearchParams({}, { replace: false })
+    }
+  }, [search, setSearchParams])
+
+  // Sync local search state when URL changes (e.g. browser back/forward)
+  useEffect(() => {
+    const q = searchParams.get('q') || ''
+    setSearch(q)
+  }, [searchParams])
 
   useEffect(() => {
     async function fetchData() {
@@ -82,7 +107,14 @@ export default function PublicSearch() {
 
       <SearchBar
         value={search}
-        onChange={(v) => { setSearch(v); setSelectedAthlete(null) }}
+        onChange={(v) => {
+          setSearch(v)
+          if (v) {
+            setSearchParams({ q: v }, { replace: true })
+          } else {
+            setSearchParams({}, { replace: true })
+          }
+        }}
         placeholder="Type athlete name..."
       />
 
@@ -96,7 +128,7 @@ export default function PublicSearch() {
               {filteredAthletes.map(athlete => (
                 <div key={athlete.id} className="flex items-center min-h-[44px]">
                   <button
-                    onClick={() => setSelectedAthlete(athlete)}
+                    onClick={() => selectAthlete(athlete)}
                     className="flex-1 flex items-center justify-between p-3 hover:bg-navy-50 rounded-lg transition-colors"
                   >
                     <div className="flex items-center space-x-3">
@@ -172,7 +204,7 @@ export default function PublicSearch() {
                 </div>
               </div>
               <button
-                onClick={() => { setSelectedAthlete(null); setSearch('') }}
+                onClick={() => clearAthlete()}
                 className="p-2 hover:bg-gray-100 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
                 <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
