@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useMeet } from '../hooks/useMeets'
 import { useEvents } from '../hooks/useEvents'
 import { useMeetEntries } from '../hooks/useMeetEntries'
+import { useTeam, useTeamPath } from '../hooks/useTeam'
 import type { MeetEntryWithDetails } from '../types/database'
 
 interface AthleteRow {
@@ -32,6 +33,8 @@ export default function MeetReport() {
   const { meet, loading: meetLoading } = useMeet(id)
   const { events, loading: eventsLoading } = useEvents()
   const { entries, loading: entriesLoading } = useMeetEntries(id)
+  const { team } = useTeam()
+  const teamPath = useTeamPath()
   const [filterGender, setFilterGender] = useState<'all' | 'Boys' | 'Girls'>('all')
   const [filterLevel, setFilterLevel] = useState<'all' | 'JV' | 'Varsity'>('all')
 
@@ -49,7 +52,7 @@ export default function MeetReport() {
     return (
       <div className="text-center py-12">
         <h2 className="text-2xl font-bold text-navy-900">Meet not found</h2>
-        <Link to="/meets" className="btn-primary inline-block mt-4">Back to Meets</Link>
+        <Link to={teamPath('/meets')} className="btn-primary inline-block mt-4">Back to Meets</Link>
       </div>
     )
   }
@@ -102,12 +105,13 @@ export default function MeetReport() {
   const overLimitCount = athletes.filter(a => a.events.length > OVER_LIMIT).length
 
   const handlePrint = () => window.print()
+  const schoolName = team?.school_name || 'Bishop Snyder'
 
   return (
     <div className="space-y-6">
       {/* Screen header */}
       <div className="no-print">
-        <Link to={`/meets/${id}`} className="text-sm text-navy-600 hover:text-navy-800 font-medium mb-2 inline-block">
+        <Link to={teamPath(`/meets/${id}`)} className="text-sm text-navy-600 hover:text-navy-800 font-medium mb-2 inline-flex items-center min-h-[44px]">
           ← Back to Meet
         </Link>
 
@@ -137,7 +141,7 @@ export default function MeetReport() {
               </div>
             </div>
 
-            <button onClick={handlePrint} className="btn-ghost text-white hover:bg-navy-700 text-sm">
+            <button onClick={handlePrint} className="btn-ghost text-white hover:bg-navy-700 text-sm min-h-[44px]">
               <svg className="w-4 h-4 mr-1.5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -179,7 +183,7 @@ export default function MeetReport() {
             <button
               key={g}
               onClick={() => setFilterGender(g)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              className={`px-3 py-2 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
                 filterGender === g ? 'bg-navy-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -192,7 +196,7 @@ export default function MeetReport() {
             <button
               key={l}
               onClick={() => setFilterLevel(l)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              className={`px-3 py-2 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
                 filterLevel === l ? 'bg-navy-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -202,7 +206,7 @@ export default function MeetReport() {
         </div>
       </div>
 
-      {/* Athlete list - screen */}
+      {/* Athlete list - screen (card layout, mobile-friendly) */}
       {athletes.length === 0 ? (
         <div className="card text-center py-8 text-gray-500">
           <p className="text-lg font-medium">No athletes registered</p>
@@ -218,12 +222,12 @@ export default function MeetReport() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
                     <Link
-                      to={`/athletes/${athlete.id}`}
+                      to={teamPath(`/athletes/${athlete.id}`)}
                       className="text-lg font-semibold text-navy-900 hover:text-navy-700"
                     >
                       {athlete.name}
                     </Link>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       {athlete.grade && (
                         <span className="text-xs text-gray-500">Grade {athlete.grade}</span>
                       )}
@@ -253,7 +257,7 @@ export default function MeetReport() {
                     return (
                       <span
                         key={idx}
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${baseColor}`}
+                        className={`inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-medium ${baseColor}`}
                       >
                         {ev.shortName || ev.name}
                         {ev.isRelay && ev.relayLeg ? ` (Leg ${ev.relayLeg})` : ''}
@@ -326,7 +330,7 @@ export default function MeetReport() {
         </table>
 
         <div className="mt-6 text-center text-xs text-gray-400">
-          Cardinal Track — Bishop Snyder Track &amp; Field — Printed {new Date().toLocaleDateString()}
+          Cardinal Track — {schoolName} Track &amp; Field — Printed {new Date().toLocaleDateString()}
         </div>
       </div>
     </div>

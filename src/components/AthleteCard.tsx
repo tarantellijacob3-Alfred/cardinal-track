@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { Athlete } from '../types/database'
+import { useTeamPath } from '../hooks/useTeam'
 
 interface Props {
   athlete: Athlete
@@ -9,6 +10,8 @@ interface Props {
 }
 
 export default function AthleteCard({ athlete, eventCount, compact = false, onClick }: Props) {
+  const teamPath = useTeamPath()
+
   const content = (
     <div className={`flex items-center justify-between ${compact ? 'py-1' : 'py-2'}`}>
       <div className="flex items-center space-x-3">
@@ -45,14 +48,14 @@ export default function AthleteCard({ athlete, eventCount, compact = false, onCl
 
   if (onClick) {
     return (
-      <button onClick={onClick} className="w-full text-left hover:bg-gray-50 px-3 rounded-lg transition-colors">
+      <button onClick={onClick} className="w-full text-left hover:bg-gray-50 px-3 rounded-lg transition-colors min-h-[44px]">
         {content}
       </button>
     )
   }
 
   return (
-    <Link to={`/athletes/${athlete.id}`} className="block hover:bg-gray-50 px-3 rounded-lg transition-colors">
+    <Link to={teamPath(`/athletes/${athlete.id}`)} className="block hover:bg-gray-50 px-3 rounded-lg transition-colors min-h-[44px]">
       {content}
     </Link>
   )

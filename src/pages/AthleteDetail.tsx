@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom'
 import { useAthlete } from '../hooks/useAthletes'
 import { useAthleteEntries } from '../hooks/useMeetEntries'
+import { useTeam, useTeamPath } from '../hooks/useTeam'
 import { supabase } from '../lib/supabase'
 import { useState, useEffect } from 'react'
 import type { Meet } from '../types/database'
@@ -9,15 +10,22 @@ export default function AthleteDetail() {
   const { id } = useParams<{ id: string }>()
   const { athlete, loading: athleteLoading } = useAthlete(id)
   const { entries, loading: entriesLoading } = useAthleteEntries(id)
+  const { team } = useTeam()
+  const teamPath = useTeamPath()
   const [meets, setMeets] = useState<Meet[]>([])
 
   useEffect(() => {
     async function fetchMeets() {
-      const { data } = await supabase.from('meets').select('*').order('date', { ascending: false })
+      const query = supabase.from('meets').select('*').order('date', { ascending: false })
+      // Scope to team if available
+      if (team?.id) {
+        query.eq('team_id', team.id)
+      }
+      const { data } = await query
       if (data) setMeets(data)
     }
-    fetchMeets()
-  }, [])
+    if (team?.id) fetchMeets()
+  }, [team?.id])
 
   const loading = athleteLoading || entriesLoading
 
@@ -33,7 +41,7 @@ export default function AthleteDetail() {
     return (
       <div className="text-center py-12">
         <h2 className="text-2xl font-bold text-navy-900">Athlete not found</h2>
-        <Link to="/roster" className="btn-primary inline-block mt-4">Back to Roster</Link>
+        <Link to={teamPath('/roster')} className="btn-primary inline-block mt-4">Back to Roster</Link>
       </div>
     )
   }
@@ -49,7 +57,7 @@ export default function AthleteDetail() {
 
   return (
     <div className="space-y-6">
-      <Link to="/roster" className="text-sm text-navy-600 hover:text-navy-800 font-medium mb-2 inline-block">
+      <Link to={teamPath('/roster')} className="text-sm text-navy-600 hover:text-navy-800 font-medium mb-2 inline-flex items-center min-h-[44px]">
         ← Back to Roster
       </Link>
 
@@ -105,7 +113,7 @@ export default function AthleteDetail() {
               const meetDate = new Date(meet.date + 'T00:00:00')
 
               return (
-                <Link key={meetId} to={`/meets/${meetId}`} className="card block hover:shadow-md transition-shadow">
+                <Link key={meetId} to={teamPath(`/meets/${meetId}`)} className="card block hover:shadow-md transition-shadow">
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <h3 className="font-semibold text-navy-900">{meet.name}</h3>
@@ -118,7 +126,7 @@ export default function AthleteDetail() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {meetEntries.map(entry => (
-                      <span key={entry.id} className={`text-sm px-3 py-1 rounded-full font-medium ${
+                      <span key={entry.id} className={`text-sm px-3 py-1.5 rounded-full font-medium ${
                         entry.events.category === 'Field' ? 'bg-green-100 text-green-800' :
                         entry.events.category === 'Sprint' ? 'bg-blue-100 text-blue-800' :
                         entry.events.category === 'Distance' ? 'bg-purple-100 text-purple-800' :

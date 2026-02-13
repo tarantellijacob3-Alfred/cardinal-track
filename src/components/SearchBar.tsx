@@ -24,7 +24,7 @@ export default function SearchBar({ value, onChange, placeholder = 'Search athle
       {value && (
         <button
           onClick={() => onChange('')}
-          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+          className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-gray-600 min-w-[44px] justify-center"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

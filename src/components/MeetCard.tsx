@@ -1,17 +1,19 @@
 import { Link } from 'react-router-dom'
 import type { Meet } from '../types/database'
+import { useTeamPath } from '../hooks/useTeam'
 
 interface Props {
   meet: Meet
 }
 
 export default function MeetCard({ meet }: Props) {
+  const teamPath = useTeamPath()
   const meetDate = new Date(meet.date + 'T00:00:00')
   const isUpcoming = meetDate >= new Date(new Date().toDateString())
   const isPast = !isUpcoming
 
   return (
-    <Link to={`/meets/${meet.id}`} className="card hover:shadow-md transition-shadow block">
+    <Link to={teamPath(`/meets/${meet.id}`)} className="card hover:shadow-md transition-shadow block">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <h3 className="font-semibold text-navy-900 text-lg">{meet.name}</h3>

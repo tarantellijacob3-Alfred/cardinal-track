@@ -1,6 +1,8 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import { TeamProvider } from './contexts/TeamContext'
 import Layout from './components/Layout'
+import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -13,26 +15,67 @@ import MeetReport from './pages/MeetReport'
 import Events from './pages/Events'
 import Settings from './pages/Settings'
 
+/** Default team slug for backward-compatible redirects */
+const DEFAULT_SLUG = 'bishop-snyder'
+
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/roster" element={<Roster />} />
-            <Route path="/meets" element={<Meets />} />
-            <Route path="/meets/:id" element={<MeetDetail />} />
-            <Route path="/meets/:id/report" element={<MeetReport />} />
-            <Route path="/events" element={<Events />} />
-            <Route path="/athletes/:id" element={<AthleteDetail />} />
-            <Route path="/search" element={<PublicSearch />} />
-            <Route path="/settings" element={<Settings />} />
+          {/* Landing page at root */}
+          <Route path="/" element={<Landing />} />
+
+          {/* Global auth routes (not team-scoped) */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* ══════ Backward-compatible redirects ══════ */}
+          {/* Old Bishop Snyder paths → new team-scoped paths */}
+          <Route path="/roster" element={<Navigate to={`/t/${DEFAULT_SLUG}/roster`} replace />} />
+          <Route path="/meets" element={<Navigate to={`/t/${DEFAULT_SLUG}/meets`} replace />} />
+          <Route path="/meets/:id" element={<RedirectMeet />} />
+          <Route path="/meets/:id/report" element={<RedirectMeetReport />} />
+          <Route path="/events" element={<Navigate to={`/t/${DEFAULT_SLUG}/events`} replace />} />
+          <Route path="/athletes/:id" element={<RedirectAthlete />} />
+          <Route path="/search" element={<Navigate to={`/t/${DEFAULT_SLUG}/search`} replace />} />
+          <Route path="/settings" element={<Navigate to={`/t/${DEFAULT_SLUG}/settings`} replace />} />
+
+          {/* ══════ Team-scoped routes ══════ */}
+          <Route path="/t/:slug" element={<TeamProvider><Layout /></TeamProvider>}>
+            <Route index element={<Dashboard />} />
+            <Route path="roster" element={<Roster />} />
+            <Route path="meets" element={<Meets />} />
+            <Route path="meets/:id" element={<MeetDetail />} />
+            <Route path="meets/:id/report" element={<MeetReport />} />
+            <Route path="events" element={<Events />} />
+            <Route path="athletes/:id" element={<AthleteDetail />} />
+            <Route path="search" element={<PublicSearch />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
+
+          {/* Catch-all → landing */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
   )
+}
+
+/* ── Redirect helpers for parameterized routes ── */
+import { useParams } from 'react-router-dom'
+
+function RedirectMeet() {
+  const { id } = useParams()
+  return <Navigate to={`/t/${DEFAULT_SLUG}/meets/${id}`} replace />
+}
+
+function RedirectMeetReport() {
+  const { id } = useParams()
+  return <Navigate to={`/t/${DEFAULT_SLUG}/meets/${id}/report`} replace />
+}
+
+function RedirectAthlete() {
+  const { id } = useParams()
+  return <Navigate to={`/t/${DEFAULT_SLUG}/athletes/${id}`} replace />
 }

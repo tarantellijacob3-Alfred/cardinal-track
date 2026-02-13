@@ -1,6 +1,11 @@
 export interface Database {
   public: {
     Tables: {
+      teams: {
+        Row: Team
+        Insert: TeamInsert
+        Update: TeamUpdate
+      }
       athletes: {
         Row: Athlete
         Insert: AthleteInsert
@@ -30,6 +35,27 @@ export interface Database {
   }
 }
 
+export interface Team {
+  id: string
+  name: string
+  slug: string
+  school_name: string
+  logo_url: string | null
+  primary_color: string
+  secondary_color: string
+  stripe_subscription_id: string | null
+  is_grandfathered: boolean
+  active: boolean
+  created_at: string
+}
+
+export type TeamInsert = Omit<Team, 'id' | 'created_at'> & {
+  id?: string
+  created_at?: string
+}
+
+export type TeamUpdate = Partial<TeamInsert>
+
 export interface Athlete {
   id: string
   first_name: string
@@ -38,6 +64,7 @@ export interface Athlete {
   level: 'JV' | 'Varsity'
   gender: 'Boys' | 'Girls'
   active: boolean
+  team_id: string
   created_at: string
 }
 
@@ -67,6 +94,7 @@ export interface Meet {
   location: string | null
   level: 'JV' | 'Varsity' | 'Both'
   notes: string | null
+  team_id: string
   created_at: string
 }
 
@@ -100,6 +128,7 @@ export interface Profile {
   full_name: string | null
   role: 'admin' | 'coach' | 'parent' | 'athlete'
   approved: boolean
+  team_id: string | null
   created_at: string
 }
 

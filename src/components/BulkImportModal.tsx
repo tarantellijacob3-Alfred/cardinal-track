@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import type { AthleteInsert } from '../types/database'
 
 interface ParsedRow {
@@ -11,7 +11,7 @@ interface ParsedRow {
 }
 
 interface Props {
-  onImport: (athletes: AthleteInsert[]) => Promise<void>
+  onImport: (athletes: Omit<AthleteInsert, 'team_id'>[]) => Promise<void>
   onClose: () => void
 }
 
@@ -104,16 +104,37 @@ export default function BulkImportModal({ onImport, onClose }: Props) {
   const [importing, setImporting] = useState(false)
   const [defaultLevel, setDefaultLevel] = useState<'JV' | 'Varsity'>('JV')
   const [defaultGender, setDefaultGender] = useState<'Boys' | 'Girls'>('Boys')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const parsed = useMemo(() => detectAndParse(rawText), [rawText])
   const validRows = useMemo(() => parsed.filter(r => !r.error), [parsed])
   const errorRows = useMemo(() => parsed.filter(r => r.error), [parsed])
 
+  /** Handle CSV file upload */
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const text = event.target?.result
+      if (typeof text === 'string') {
+        setRawText(text)
+      }
+    }
+    reader.readAsText(file)
+
+    // Reset file input so same file can be re-selected
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }, [])
+
   const handleImport = useCallback(async () => {
     if (validRows.length === 0) return
     setImporting(true)
     try {
-      const athletes: AthleteInsert[] = validRows.map(r => ({
+      const athletes: Omit<AthleteInsert, 'team_id'>[] = validRows.map(r => ({
         first_name: r.first_name,
         last_name: r.last_name,
         grade: r.grade,
@@ -136,10 +157,10 @@ export default function BulkImportModal({ onImport, onClose }: Props) {
           <div>
             <h3 className="font-semibold text-navy-900 text-lg">Import Athletes</h3>
             <p className="text-sm text-gray-500">
-              Paste CSV, tab-separated, or names (one per line)
+              Upload a CSV file or paste data below
             </p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -156,7 +177,7 @@ export default function BulkImportModal({ onImport, onClose }: Props) {
                   <button
                     key={l}
                     onClick={() => setDefaultLevel(l)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors min-h-[44px] ${
                       defaultLevel === l
                         ? 'bg-navy-800 text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -174,7 +195,7 @@ export default function BulkImportModal({ onImport, onClose }: Props) {
                   <button
                     key={g}
                     onClick={() => setDefaultGender(g)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors min-h-[44px] ${
                       defaultGender === g
                         ? 'bg-navy-800 text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -185,6 +206,43 @@ export default function BulkImportModal({ onImport, onClose }: Props) {
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* CSV File Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Upload CSV file</label>
+            <div className="flex items-center gap-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.txt,.tsv"
+                onChange={handleFileUpload}
+                className="hidden"
+                id="csv-upload"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-navy-400 hover:text-navy-700 transition-colors min-h-[44px]"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                Choose .csv file
+              </button>
+              {rawText && (
+                <span className="text-xs text-green-600 font-medium">
+                  ✓ Data loaded ({parsed.length} rows)
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 border-t border-gray-200"></div>
+            <span className="text-xs text-gray-400 font-medium">OR</span>
+            <div className="flex-1 border-t border-gray-200"></div>
           </div>
 
           {/* Textarea */}
@@ -217,7 +275,10 @@ export default function BulkImportModal({ onImport, onClose }: Props) {
               <h4 className="text-sm font-semibold text-navy-900 mb-2">
                 Preview ({validRows.length} valid, {errorRows.length} errors)
               </h4>
-              <div className="overflow-x-auto">
+
+              {/* Mobile: card layout; Desktop: table */}
+              {/* Desktop table */}
+              <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-xs text-gray-500 border-b">
@@ -257,17 +318,47 @@ export default function BulkImportModal({ onImport, onClose }: Props) {
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile card layout */}
+              <div className="sm:hidden space-y-2">
+                {parsed.map((row, i) => (
+                  <div key={i} className={`rounded-lg p-3 text-sm ${row.error ? 'bg-red-50 border border-red-200' : 'bg-gray-50'}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-navy-800">
+                        {row.first_name || '—'} {row.last_name || '—'}
+                      </span>
+                      {row.error ? (
+                        <span className="text-xs text-red-600">⚠</span>
+                      ) : (
+                        <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      {row.grade && <span className="text-xs text-gray-500">Gr {row.grade}</span>}
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${
+                        row.level === 'Varsity' ? 'bg-cardinal-100 text-cardinal-700' : 'bg-navy-100 text-navy-700'
+                      }`}>{row.level}</span>
+                      <span className="text-xs text-gray-500">{row.gender}</span>
+                    </div>
+                    {row.error && (
+                      <p className="text-xs text-red-600 mt-1">{row.error}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-between p-4 border-t bg-gray-50 rounded-b-2xl">
-          <button onClick={onClose} className="btn-ghost text-sm">Cancel</button>
+          <button onClick={onClose} className="btn-ghost text-sm min-h-[44px]">Cancel</button>
           <button
             onClick={handleImport}
             disabled={validRows.length === 0 || importing}
-            className="btn-primary text-sm flex items-center space-x-2"
+            className="btn-primary text-sm flex items-center space-x-2 min-h-[44px]"
           >
             {importing ? (
               <>

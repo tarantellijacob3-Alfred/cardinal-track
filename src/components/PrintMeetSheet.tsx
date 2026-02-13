@@ -1,4 +1,5 @@
 import type { Meet, TrackEvent, MeetEntryWithDetails } from '../types/database'
+import { useTeam } from '../hooks/useTeam'
 
 interface Props {
   meet: Meet
@@ -7,7 +8,9 @@ interface Props {
 }
 
 export default function PrintMeetSheet({ meet, events, entries }: Props) {
+  const { team } = useTeam()
   const meetDate = new Date(meet.date + 'T00:00:00')
+  const schoolName = team?.school_name || 'Bishop Snyder'
 
   const getEntriesForEvent = (eventId: string) =>
     entries
@@ -51,7 +54,7 @@ export default function PrintMeetSheet({ meet, events, entries }: Props) {
       </div>
 
       <div className="mt-6 text-center text-xs text-gray-400">
-        Cardinal Track — Bishop Snyder Track &amp; Field — Printed {new Date().toLocaleDateString()}
+        Cardinal Track — {schoolName} Track &amp; Field — Printed {new Date().toLocaleDateString()}
       </div>
     </div>
   )

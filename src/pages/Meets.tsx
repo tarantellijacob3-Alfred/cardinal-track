@@ -48,7 +48,7 @@ export default function Meets() {
         {isCoach && (
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="btn-primary flex items-center space-x-2"
+            className="btn-primary flex items-center space-x-2 min-h-[44px]"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -118,8 +118,8 @@ export default function Meets() {
             </div>
           </div>
           <div className="flex space-x-3">
-            <button type="submit" className="btn-primary">Create Meet</button>
-            <button type="button" onClick={() => setShowAddForm(false)} className="btn-ghost">Cancel</button>
+            <button type="submit" className="btn-primary min-h-[44px]">Create Meet</button>
+            <button type="button" onClick={() => setShowAddForm(false)} className="btn-ghost min-h-[44px]">Cancel</button>
           </div>
         </form>
       )}
@@ -133,7 +133,7 @@ export default function Meets() {
         <div className="card text-center py-12">
           <p className="text-gray-400">No meets yet</p>
           {isCoach && (
-            <button onClick={() => setShowAddForm(true)} className="btn-primary mt-3 text-sm">
+            <button onClick={() => setShowAddForm(true)} className="btn-primary mt-3 text-sm min-h-[44px]">
               Create your first meet
             </button>
           )}
@@ -146,7 +146,7 @@ export default function Meets() {
               {isCoach && (
                 <button
                   onClick={(e) => { e.preventDefault(); handleDelete(meet.id) }}
-                  className="absolute bottom-3 right-3 p-2 text-cardinal-500 hover:text-cardinal-700 hover:bg-cardinal-50 rounded-lg transition-all"
+                  className="absolute bottom-3 right-3 p-2 text-cardinal-500 hover:text-cardinal-700 hover:bg-cardinal-50 rounded-lg transition-all min-h-[44px] min-w-[44px] flex items-center justify-center"
                   title="Delete meet"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

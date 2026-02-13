@@ -1,16 +1,25 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Athlete, AthleteInsert, AthleteUpdate } from '../types/database'
+import { useTeam } from './useTeam'
 
 export function useAthletes() {
   const [athletes, setAthletes] = useState<Athlete[]>([])
   const [loading, setLoading] = useState(true)
+  const { teamId } = useTeam()
 
   const fetch = useCallback(async () => {
+    if (!teamId) {
+      setAthletes([])
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     const { data, error } = await supabase
       .from('athletes')
       .select('*')
+      .eq('team_id', teamId)
       .order('last_name', { ascending: true })
       .order('first_name', { ascending: true })
 
@@ -18,16 +27,18 @@ export function useAthletes() {
       setAthletes(data as Athlete[])
     }
     setLoading(false)
-  }, [])
+  }, [teamId])
 
   useEffect(() => {
     fetch()
   }, [fetch])
 
-  async function addAthlete(athlete: AthleteInsert) {
+  async function addAthlete(athlete: Omit<AthleteInsert, 'team_id'>) {
+    if (!teamId) return { data: null, error: new Error('No team context') }
+
     const { data, error } = await supabase
       .from('athletes')
-      .insert(athlete as Record<string, unknown>)
+      .insert({ ...athlete, team_id: teamId } as Record<string, unknown>)
       .select()
       .single()
 
@@ -67,13 +78,15 @@ export function useAthletes() {
     return { error }
   }
 
-  async function bulkAddAthletes(newAthletes: AthleteInsert[]) {
+  async function bulkAddAthletes(newAthletes: Omit<AthleteInsert, 'team_id'>[]) {
+    if (!teamId) return { added: [], errors: [{ index: 0, error: 'No team context' }] }
+
     const results: Athlete[] = []
     const errors: Array<{ index: number; error: unknown }> = []
     for (let i = 0; i < newAthletes.length; i++) {
       const { data, error } = await supabase
         .from('athletes')
-        .insert(newAthletes[i] as Record<string, unknown>)
+        .insert({ ...newAthletes[i], team_id: teamId } as Record<string, unknown>)
         .select()
         .single()
       if (!error && data) {

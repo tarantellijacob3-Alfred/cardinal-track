@@ -1,32 +1,43 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Meet, MeetInsert, MeetUpdate } from '../types/database'
+import { useTeam } from './useTeam'
 
 export function useMeets() {
   const [meets, setMeets] = useState<Meet[]>([])
   const [loading, setLoading] = useState(true)
+  const { teamId } = useTeam()
 
   const fetch = useCallback(async () => {
+    if (!teamId) {
+      setMeets([])
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     const { data, error } = await supabase
       .from('meets')
       .select('*')
+      .eq('team_id', teamId)
       .order('date', { ascending: false })
 
     if (!error && data) {
       setMeets(data as Meet[])
     }
     setLoading(false)
-  }, [])
+  }, [teamId])
 
   useEffect(() => {
     fetch()
   }, [fetch])
 
-  async function addMeet(meet: MeetInsert) {
+  async function addMeet(meet: Omit<MeetInsert, 'team_id'>) {
+    if (!teamId) return { data: null, error: new Error('No team context') }
+
     const { data, error } = await supabase
       .from('meets')
-      .insert(meet as Record<string, unknown>)
+      .insert({ ...meet, team_id: teamId } as Record<string, unknown>)
       .select()
       .single()
 

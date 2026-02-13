@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useAthletes } from '../hooks/useAthletes'
+import { useTeamPath } from '../hooks/useTeam'
 import SearchBar from '../components/SearchBar'
 import BulkImportModal from '../components/BulkImportModal'
 import type { Athlete, AthleteInsert } from '../types/database'
@@ -96,6 +97,7 @@ function InlineEditCell({ value, onSave, type = 'text', options = [], className 
 export default function Roster() {
   const { isCoach } = useAuth()
   const { athletes, loading, addAthlete, bulkAddAthletes, updateAthlete, deleteAthlete } = useAthletes()
+  const teamPath = useTeamPath()
   const [search, setSearch] = useState('')
   const [levelFilter, setLevelFilter] = useState<LevelFilter>('all')
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all')
@@ -186,7 +188,7 @@ export default function Roster() {
     }
   }
 
-  const handleBulkImport = async (newAthletes: AthleteInsert[]) => {
+  const handleBulkImport = async (newAthletes: Omit<AthleteInsert, 'team_id'>[]) => {
     await bulkAddAthletes(newAthletes)
   }
 
@@ -202,7 +204,7 @@ export default function Roster() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setShowImportModal(true)}
-              className="btn-secondary flex items-center space-x-2 text-sm"
+              className="btn-secondary flex items-center space-x-2 text-sm min-h-[44px]"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -212,7 +214,7 @@ export default function Roster() {
             </button>
             <button
               onClick={() => setShowAddForm(!showAddForm)}
-              className="btn-primary flex items-center space-x-2 text-sm"
+              className="btn-primary flex items-center space-x-2 text-sm min-h-[44px]"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -284,8 +286,8 @@ export default function Roster() {
             </div>
           </div>
           <div className="flex space-x-3">
-            <button type="submit" className="btn-primary">Add Athlete</button>
-            <button type="button" onClick={() => setShowAddForm(false)} className="btn-ghost">Cancel</button>
+            <button type="submit" className="btn-primary min-h-[44px]">Add Athlete</button>
+            <button type="button" onClick={() => setShowAddForm(false)} className="btn-ghost min-h-[44px]">Cancel</button>
           </div>
         </form>
       )}
@@ -303,7 +305,7 @@ export default function Roster() {
               <button
                 key={level}
                 onClick={() => setLevelFilter(level)}
-                className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                className={`px-3 py-2 rounded-md text-xs font-medium transition-colors min-h-[44px] ${
                   levelFilter === level
                     ? 'bg-navy-800 text-white'
                     : 'bg-white text-gray-600 border hover:bg-gray-50'
@@ -324,7 +326,7 @@ export default function Roster() {
               <button
                 key={gender}
                 onClick={() => setGenderFilter(gender)}
-                className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                className={`px-3 py-2 rounded-md text-xs font-medium transition-colors min-h-[44px] ${
                   genderFilter === gender
                     ? gender === 'Boys'
                       ? 'bg-blue-600 text-white'
@@ -381,7 +383,7 @@ export default function Roster() {
                             />
                           </>
                         ) : (
-                          <Link to={`/athletes/${athlete.id}`} className="font-semibold text-navy-900 hover:text-navy-700 truncate">
+                          <Link to={teamPath(`/athletes/${athlete.id}`)} className="font-semibold text-navy-900 hover:text-navy-700 truncate">
                             {athlete.last_name}, {athlete.first_name}
                           </Link>
                         )}
@@ -425,10 +427,10 @@ export default function Roster() {
                     <div className="flex items-center flex-shrink-0">
                       <button
                         onClick={() => setSettingsAthlete(athlete)}
-                        className="p-1.5 text-gray-400 hover:text-navy-700 rounded-lg hover:bg-navy-50 transition-colors"
+                        className="p-2 text-gray-400 hover:text-navy-700 rounded-lg hover:bg-navy-50 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                         title="Settings"
                       >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                             d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.9.548 2.061.079 2.573-1.065z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -468,7 +470,7 @@ export default function Roster() {
               </div>
               <button
                 onClick={() => setSettingsAthlete(null)}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+                className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 title="Close"
               >
                 ✕
@@ -481,7 +483,7 @@ export default function Roster() {
                   await handlePromoteDemote(settingsAthlete)
                   setSettingsAthlete(null)
                 }}
-                className={`w-full px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                className={`w-full px-3 py-3 rounded-lg text-sm font-medium border transition-colors min-h-[44px] ${
                   settingsAthlete.level === 'JV'
                     ? 'text-cardinal-700 hover:bg-cardinal-50 border-cardinal-200'
                     : 'text-navy-700 hover:bg-navy-50 border-navy-200'
@@ -495,7 +497,7 @@ export default function Roster() {
                   await handleDeactivate(settingsAthlete.id)
                   setSettingsAthlete(null)
                 }}
-                className="w-full px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50"
+                className="w-full px-3 py-3 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 min-h-[44px]"
               >
                 Deactivate
               </button>
@@ -505,7 +507,7 @@ export default function Roster() {
                   await handlePermanentDelete(settingsAthlete.id)
                   setSettingsAthlete(null)
                 }}
-                className="w-full px-3 py-2 rounded-lg text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50"
+                className="w-full px-3 py-3 rounded-lg text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 min-h-[44px]"
               >
                 Delete permanently
               </button>

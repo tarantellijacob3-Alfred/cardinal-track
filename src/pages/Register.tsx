@@ -23,14 +23,14 @@ export default function Register() {
       setError(err.message)
     } else {
       setSuccess(true)
-      setTimeout(() => navigate('/'), 2000)
+      setTimeout(() => navigate('/t/bishop-snyder'), 2000)
     }
     setLoading(false)
   }
 
   if (success) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="card max-w-md w-full text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -45,14 +45,14 @@ export default function Register() {
           <p className="mt-2 text-gray-600">
             Check your email to verify your account. Redirecting...
           </p>
-          <Link to="/" className="btn-primary inline-block mt-4">Go to Home</Link>
+          <Link to="/t/bishop-snyder" className="btn-primary inline-block mt-4">Go to Home</Link>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-navy-900">Create Account</h1>
@@ -104,7 +104,7 @@ export default function Register() {
             ⚠️ Coach accounts require approval before you can make changes.
           </p>
 
-          <button type="submit" disabled={loading} className="btn-primary w-full">
+          <button type="submit" disabled={loading} className="btn-primary w-full min-h-[44px]">
             {loading ? 'Creating account...' : 'Create Account'}
           </button>
 

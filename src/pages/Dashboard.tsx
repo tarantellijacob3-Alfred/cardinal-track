@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useMeets } from '../hooks/useMeets'
 import { useAthletes } from '../hooks/useAthletes'
+import { useTeam, useTeamPath } from '../hooks/useTeam'
 import MeetCard from '../components/MeetCard'
 import SearchBar from '../components/SearchBar'
 import AthleteCard from '../components/AthleteCard'
@@ -11,6 +12,8 @@ export default function Dashboard() {
   const { user, isCoach, profile } = useAuth()
   const { meets, loading: meetsLoading } = useMeets()
   const { athletes, loading: athletesLoading } = useAthletes()
+  const { team } = useTeam()
+  const teamPath = useTeamPath()
   const [search, setSearch] = useState('')
 
   const upcomingMeets = useMemo(() => {
@@ -39,22 +42,25 @@ export default function Dashboard() {
 
   const loading = meetsLoading || athletesLoading
 
+  const teamName = team?.name || 'Cardinal Track'
+  const schoolLabel = team?.school_name || 'Track & Field'
+
   return (
     <div className="space-y-8">
       {/* Hero */}
       <div className="bg-gradient-to-br from-navy-800 to-navy-950 rounded-2xl p-6 sm:p-8 text-white">
-        <h1 className="text-3xl sm:text-4xl font-bold">Cardinal Track</h1>
-        <p className="text-gold-400 mt-1 text-lg">Bishop Snyder Track &amp; Field Meet Manager</p>
+        <h1 className="text-3xl sm:text-4xl font-bold">{teamName}</h1>
+        <p className="text-gold-400 mt-1 text-lg">{schoolLabel} Meet Manager</p>
         {!user && (
           <div className="mt-4 flex flex-wrap gap-3">
             <Link to="/login" className="btn-secondary">Sign In</Link>
-            <Link to="/search" className="btn-ghost text-white hover:bg-navy-700">Search Athletes</Link>
+            <Link to={teamPath('/search')} className="btn-ghost text-white hover:bg-navy-700">Search Athletes</Link>
           </div>
         )}
         {user && isCoach && (
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link to="/meets" className="btn-secondary">Manage Meets</Link>
-            <Link to="/roster" className="btn-ghost text-white hover:bg-navy-700">View Roster</Link>
+            <Link to={teamPath('/meets')} className="btn-secondary">Manage Meets</Link>
+            <Link to={teamPath('/roster')} className="btn-ghost text-white hover:bg-navy-700">View Roster</Link>
           </div>
         )}
       </div>
@@ -108,7 +114,7 @@ export default function Dashboard() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold text-navy-900">Upcoming Meets</h2>
-          <Link to="/meets" className="text-sm text-navy-600 hover:text-navy-800 font-medium">View all →</Link>
+          <Link to={teamPath('/meets')} className="text-sm text-navy-600 hover:text-navy-800 font-medium">View all →</Link>
         </div>
         {loading ? (
           <div className="flex justify-center py-8">
@@ -118,7 +124,7 @@ export default function Dashboard() {
           <div className="card text-center py-8">
             <p className="text-gray-400">No upcoming meets scheduled</p>
             {isCoach && (
-              <Link to="/meets" className="btn-primary inline-block mt-3 text-sm">Create Meet</Link>
+              <Link to={teamPath('/meets')} className="btn-primary inline-block mt-3 text-sm">Create Meet</Link>
             )}
           </div>
         ) : (

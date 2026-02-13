@@ -5,6 +5,7 @@ import { useMeet, useMeets } from '../hooks/useMeets'
 import { useEvents } from '../hooks/useEvents'
 import { useAthletes } from '../hooks/useAthletes'
 import { useMeetEntries } from '../hooks/useMeetEntries'
+import { useTeamPath } from '../hooks/useTeam'
 import EventCard from '../components/EventCard'
 import AthleteAssignModal from '../components/AthleteAssignModal'
 import PrintMeetSheet from '../components/PrintMeetSheet'
@@ -66,7 +67,7 @@ function CopyFromMeetModal({ currentMeetId, meets, entries, onCopy, onClose }: C
             <h3 className="font-semibold text-navy-900 text-lg">Copy from Previous Meet</h3>
             <p className="text-sm text-gray-500">Select a meet to copy all assignments from</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -85,7 +86,7 @@ function CopyFromMeetModal({ currentMeetId, meets, entries, onCopy, onClose }: C
                   <button
                     key={m.id}
                     onClick={() => setSelectedMeet(m.id)}
-                    className={`w-full text-left p-3 rounded-lg transition-colors ${
+                    className={`w-full text-left p-3 rounded-lg transition-colors min-h-[44px] ${
                       isSelected
                         ? 'bg-navy-50 ring-1 ring-navy-300'
                         : 'hover:bg-gray-50'
@@ -106,11 +107,11 @@ function CopyFromMeetModal({ currentMeetId, meets, entries, onCopy, onClose }: C
 
         {selectedMeet && (
           <div className="border-t p-4 bg-gray-50 rounded-b-2xl flex justify-between items-center">
-            <button onClick={onClose} className="btn-ghost text-sm">Cancel</button>
+            <button onClick={onClose} className="btn-ghost text-sm min-h-[44px]">Cancel</button>
             <button
               onClick={handleCopy}
               disabled={copying}
-              className="btn-primary text-sm flex items-center space-x-2"
+              className="btn-primary text-sm flex items-center space-x-2 min-h-[44px]"
             >
               {copying ? (
                 <>
@@ -128,7 +129,7 @@ function CopyFromMeetModal({ currentMeetId, meets, entries, onCopy, onClose }: C
   )
 }
 
-/* ───── Grid View ───── */
+/* ───── Grid View (Mobile-responsive) ───── */
 interface GridViewProps {
   athletes: { id: string; first_name: string; last_name: string; active: boolean }[]
   events: TrackEvent[]
@@ -190,26 +191,28 @@ function GridView({ athletes, events, entries, isCoach, relaysCountTowardLimit, 
 
   return (
     <div className="space-y-4">
-      {/* Event Column Headers */}
-      <div className="flex flex-wrap gap-2 border-b pb-4">
-        {events.map(event => {
-          const eventCount = entries.filter(e => e.event_id === event.id).length
-          const isSelected = event.id === selectedEventId
-          return (
-            <button
-              key={event.id}
-              onClick={() => setSelectedEventId(event.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                isSelected
-                  ? `${categoryBgActive[event.category] || 'bg-gray-600'} text-white shadow-md`
-                  : `${categoryBg[event.category] || 'bg-gray-100'} text-gray-700 hover:shadow-sm`
-              }`}
-            >
-              <div>{event.short_name}</div>
-              <div className="text-xs opacity-75">{eventCount} entered</div>
-            </button>
-          )
-        })}
+      {/* Event selector - horizontal scroll on mobile */}
+      <div className="overflow-x-auto -mx-4 px-4 pb-2">
+        <div className="flex gap-2 min-w-max">
+          {events.map(event => {
+            const eventCount = entries.filter(e => e.event_id === event.id).length
+            const isSelected = event.id === selectedEventId
+            return (
+              <button
+                key={event.id}
+                onClick={() => setSelectedEventId(event.id)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap min-h-[44px] ${
+                  isSelected
+                    ? `${categoryBgActive[event.category] || 'bg-gray-600'} text-white shadow-md`
+                    : `${categoryBg[event.category] || 'bg-gray-100'} text-gray-700 hover:shadow-sm`
+                }`}
+              >
+                <div>{event.short_name}</div>
+                <div className="text-xs opacity-75">{eventCount} entered</div>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {selectedEvent && (
@@ -224,7 +227,7 @@ function GridView({ athletes, events, entries, isCoach, relaysCountTowardLimit, 
             ) : (
               <div className="space-y-1">
                 {assignedAthletes.map((athlete, idx) => (
-                  <div key={athlete.entryId} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                  <div key={athlete.entryId} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg min-h-[44px]">
                     <div className="flex items-center space-x-2">
                       <span className="text-xs font-medium text-gray-400 w-6">
                         {selectedEvent.is_relay && athlete.relay_leg ? `L${athlete.relay_leg}` : `${idx + 1}.`}
@@ -241,7 +244,7 @@ function GridView({ athletes, events, entries, isCoach, relaysCountTowardLimit, 
                     {isCoach && (
                       <button
                         onClick={() => handleRemoveEntry(athlete.entryId)}
-                        className="text-cardinal-500 hover:text-cardinal-700 p-1"
+                        className="text-cardinal-500 hover:text-cardinal-700 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
                         title="Remove"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -273,7 +276,7 @@ function GridView({ athletes, events, entries, isCoach, relaysCountTowardLimit, 
                         key={athlete.id}
                         onClick={() => handleAssignAthlete(athlete.id)}
                         disabled={atLimit}
-                        className={`w-full flex items-center justify-between py-2 px-3 rounded-lg transition-colors text-left ${
+                        className={`w-full flex items-center justify-between py-2 px-3 rounded-lg transition-colors text-left min-h-[44px] ${
                           atLimit
                             ? 'bg-red-50 text-red-400 cursor-not-allowed opacity-60'
                             : 'bg-white border hover:bg-navy-50 text-navy-800'
@@ -310,6 +313,7 @@ export default function MeetDetail() {
   const { meets } = useMeets()
   const { events, loading: eventsLoading } = useEvents()
   const { athletes } = useAthletes()
+  const teamPath = useTeamPath()
   const {
     entries, loading: entriesLoading,
     addEntry, removeEntry, refetch: refetchEntries,
@@ -358,7 +362,7 @@ export default function MeetDetail() {
     return (
       <div className="text-center py-12">
         <h2 className="text-2xl font-bold text-navy-900">Meet not found</h2>
-        <Link to="/meets" className="btn-primary inline-block mt-4">Back to Meets</Link>
+        <Link to={teamPath('/meets')} className="btn-primary inline-block mt-4">Back to Meets</Link>
       </div>
     )
   }
@@ -459,7 +463,7 @@ export default function MeetDetail() {
 
       {/* Header */}
       <div className="no-print">
-        <Link to="/meets" className="text-sm text-navy-600 hover:text-navy-800 font-medium mb-2 inline-block">
+        <Link to={teamPath('/meets')} className="text-sm text-navy-600 hover:text-navy-800 font-medium mb-2 inline-block min-h-[44px] flex items-center">
           ← Back to Meets
         </Link>
 
@@ -492,7 +496,7 @@ export default function MeetDetail() {
               {isCoach && (
                 <button
                   onClick={() => setShowCopyModal(true)}
-                  className="btn-ghost text-white hover:bg-navy-700 text-sm"
+                  className="btn-ghost text-white hover:bg-navy-700 text-sm min-h-[44px]"
                 >
                   <svg className="w-4 h-4 mr-1.5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -501,14 +505,14 @@ export default function MeetDetail() {
                   Copy from Meet
                 </button>
               )}
-              <Link to={`/meets/${id}/report`} className="btn-ghost text-white hover:bg-navy-700 text-sm">
+              <Link to={teamPath(`/meets/${id}/report`)} className="btn-ghost text-white hover:bg-navy-700 text-sm min-h-[44px] inline-flex items-center">
                 <svg className="w-4 h-4 mr-1.5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 Meet Roster
               </Link>
-              <button onClick={handlePrint} className="btn-ghost text-white hover:bg-navy-700 text-sm">
+              <button onClick={handlePrint} className="btn-ghost text-white hover:bg-navy-700 text-sm min-h-[44px]">
                 <svg className="w-4 h-4 mr-1.5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -545,12 +549,12 @@ export default function MeetDetail() {
       {/* Coach settings bar */}
       {isCoach && (
         <div className="no-print flex flex-wrap items-center justify-between gap-3 bg-gold-50 rounded-lg p-3 border border-gold-200">
-          <label className="flex items-center space-x-2 text-sm">
+          <label className="flex items-center space-x-2 text-sm min-h-[44px]">
             <input
               type="checkbox"
               checked={relaysCountTowardLimit}
               onChange={e => setRelaysCountTowardLimit(e.target.checked)}
-              className="rounded border-gray-300 text-navy-800 focus:ring-navy-500"
+              className="rounded border-gray-300 text-navy-800 focus:ring-navy-500 w-5 h-5"
             />
             <span className="text-navy-800">Count relays toward 4-event limit</span>
           </label>
@@ -559,7 +563,7 @@ export default function MeetDetail() {
           <div className="flex rounded-lg overflow-hidden border border-gold-300">
             <button
               onClick={() => setViewMode('card')}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`px-3 py-2 text-sm font-medium transition-colors min-h-[44px] ${
                 viewMode === 'card'
                   ? 'bg-navy-800 text-white'
                   : 'bg-white text-navy-700 hover:bg-gray-50'
@@ -573,7 +577,7 @@ export default function MeetDetail() {
             </button>
             <button
               onClick={() => setViewMode('grid')}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`px-3 py-2 text-sm font-medium transition-colors min-h-[44px] ${
                 viewMode === 'grid'
                   ? 'bg-navy-800 text-white'
                   : 'bg-white text-navy-700 hover:bg-gray-50'
@@ -595,7 +599,7 @@ export default function MeetDetail() {
           <div className="flex rounded-lg overflow-hidden border border-gray-300">
             <button
               onClick={() => setViewMode('card')}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`px-3 py-2 text-sm font-medium transition-colors min-h-[44px] ${
                 viewMode === 'card'
                   ? 'bg-navy-800 text-white'
                   : 'bg-white text-navy-700 hover:bg-gray-50'
@@ -605,7 +609,7 @@ export default function MeetDetail() {
             </button>
             <button
               onClick={() => setViewMode('grid')}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`px-3 py-2 text-sm font-medium transition-colors min-h-[44px] ${
                 viewMode === 'grid'
                   ? 'bg-navy-800 text-white'
                   : 'bg-white text-navy-700 hover:bg-gray-50'
@@ -619,13 +623,13 @@ export default function MeetDetail() {
 
       {/* Gender filter (only show if meet doesn't already specify gender) */}
       {!meetGenderHint && (
-        <div className="no-print flex items-center gap-2">
+        <div className="no-print flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium text-gray-600">Show:</span>
           {(['all', 'Boys', 'Girls'] as const).map(g => (
             <button
               key={g}
               onClick={() => setGenderFilter(g)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              className={`px-3 py-2 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
                 genderFilter === g
                   ? g === 'Boys' ? 'bg-blue-600 text-white'
                     : g === 'Girls' ? 'bg-pink-600 text-white'
@@ -652,7 +656,7 @@ export default function MeetDetail() {
         <div className="no-print flex flex-wrap gap-2">
           <button
             onClick={() => setActiveCategory(null)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            className={`px-3 py-2 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
               !activeCategory ? 'bg-navy-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
@@ -662,7 +666,7 @@ export default function MeetDetail() {
             <button
               key={cat}
               onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              className={`px-3 py-2 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
                 activeCategory === cat ? 'bg-navy-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >

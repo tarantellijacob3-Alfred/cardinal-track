@@ -44,7 +44,7 @@ export default function EventCard({ event, entries, isCoach, onAssign, onRemoveE
           {isCoach && onAssign && (
             <button
               onClick={onAssign}
-              className="p-1.5 rounded-lg bg-navy-800 text-white hover:bg-navy-700 transition-colors"
+              className="p-2 rounded-lg bg-navy-800 text-white hover:bg-navy-700 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               title="Add athlete"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -79,7 +79,7 @@ export default function EventCard({ event, entries, isCoach, onAssign, onRemoveE
               {isCoach && onRemoveEntry && (
                 <button
                   onClick={() => onRemoveEntry(entry.id)}
-                  className="opacity-0 group-hover:opacity-100 p-1 text-cardinal-500 hover:text-cardinal-700 transition-all"
+                  className="sm:opacity-0 sm:group-hover:opacity-100 p-2 text-cardinal-500 hover:text-cardinal-700 transition-all min-h-[44px] min-w-[44px] flex items-center justify-center"
                   title="Remove"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

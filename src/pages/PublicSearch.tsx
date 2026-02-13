@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useTeam, useTeamPath } from '../hooks/useTeam'
 import SearchBar from '../components/SearchBar'
 import type { Athlete, Meet, MeetEntryWithDetails } from '../types/database'
 
@@ -11,13 +12,17 @@ export default function PublicSearch() {
   const [allEntries, setAllEntries] = useState<MeetEntryWithDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null)
+  const { team } = useTeam()
+  const teamPath = useTeamPath()
 
   useEffect(() => {
     async function fetchData() {
+      if (!team?.id) return
       setLoading(true)
+
       const [athletesRes, meetsRes, entriesRes] = await Promise.all([
-        supabase.from('athletes').select('*').eq('active', true).order('last_name'),
-        supabase.from('meets').select('*').order('date', { ascending: false }),
+        supabase.from('athletes').select('*').eq('active', true).eq('team_id', team.id).order('last_name'),
+        supabase.from('meets').select('*').eq('team_id', team.id).order('date', { ascending: false }),
         supabase.from('meet_entries').select('*, athletes(*), events(*)'),
       ])
 
@@ -27,7 +32,7 @@ export default function PublicSearch() {
       setLoading(false)
     }
     fetchData()
-  }, [])
+  }, [team?.id])
 
   const filteredAthletes = useMemo(() => {
     if (!search || search.length < 2) return []
@@ -86,7 +91,7 @@ export default function PublicSearch() {
                 <button
                   key={athlete.id}
                   onClick={() => setSelectedAthlete(athlete)}
-                  className="w-full flex items-center justify-between p-3 hover:bg-navy-50 rounded-lg transition-colors"
+                  className="w-full flex items-center justify-between p-3 hover:bg-navy-50 rounded-lg transition-colors min-h-[44px]"
                 >
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-navy-100 rounded-full flex items-center justify-center">
@@ -139,7 +144,7 @@ export default function PublicSearch() {
               </div>
               <button
                 onClick={() => { setSelectedAthlete(null); setSearch('') }}
-                className="p-2 hover:bg-gray-100 rounded-lg"
+                className="p-2 hover:bg-gray-100 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
                 <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

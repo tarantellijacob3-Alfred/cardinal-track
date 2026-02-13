@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useTeam, useTeamPath } from '../hooks/useTeam'
 
 export default function Navbar() {
   const { user, profile, isCoach, isAdmin, signOut } = useAuth()
+  const { team } = useTeam()
+  const teamPath = useTeamPath()
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -22,23 +25,28 @@ export default function Navbar() {
   const isActive = (path: string) => location.pathname === path
 
   const navLinks = [
-    { path: '/', label: 'Home' },
-    { path: '/roster', label: 'Roster' },
-    { path: '/meets', label: 'Meets' },
-    { path: '/events', label: 'Events' },
-    { path: '/search', label: 'Search' },
+    { path: teamPath('/'), label: 'Home' },
+    { path: teamPath('/roster'), label: 'Roster' },
+    { path: teamPath('/meets'), label: 'Meets' },
+    { path: teamPath('/events'), label: 'Events' },
+    { path: teamPath('/search'), label: 'Search' },
   ]
+
+  // Use team logo or fallback
+  const logoUrl = team?.logo_url || '/cardinal-logo.jpg'
+  const teamName = team?.name || 'Cardinal Track'
+  const schoolName = team?.school_name || 'Track & Field'
 
   return (
     <nav className="no-print bg-navy-950 text-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3">
-            <img src="/cardinal-logo.jpg" alt="Bishop Snyder Cardinals" className="w-10 h-10 object-contain" />
+          <Link to={teamPath('/')} className="flex items-center space-x-3">
+            <img src={logoUrl} alt={teamName} className="w-10 h-10 object-contain" />
             <div className="hidden sm:block">
-              <div className="font-bold text-lg leading-tight text-cardinal-600">Cardinal Track</div>
-              <div className="text-gold-400 text-xs leading-tight">Bishop Snyder Track &amp; Field</div>
+              <div className="font-bold text-lg leading-tight text-cardinal-600">{teamName}</div>
+              <div className="text-gold-400 text-xs leading-tight">{schoolName}</div>
             </div>
           </Link>
 
@@ -59,9 +67,9 @@ export default function Navbar() {
             ))}
             {isCoach && (
               <Link
-                to="/settings"
+                to={teamPath('/settings')}
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  isActive('/settings')
+                  isActive(teamPath('/settings'))
                     ? 'bg-navy-700 text-gold-400'
                     : 'text-gray-300 hover:bg-navy-800 hover:text-white'
                 }`}
@@ -96,7 +104,7 @@ export default function Navbar() {
 
           {/* Mobile menu button */}
           <button
-            className="md:hidden p-2 rounded-md text-gray-300 hover:text-white hover:bg-navy-800"
+            className="md:hidden p-2 rounded-md text-gray-300 hover:text-white hover:bg-navy-800 min-h-[44px] min-w-[44px] flex items-center justify-center"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -118,7 +126,7 @@ export default function Navbar() {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                className={`block px-3 py-3 rounded-md text-base font-medium min-h-[44px] ${
                   isActive(link.path)
                     ? 'bg-navy-700 text-gold-400'
                     : 'text-gray-300 hover:bg-navy-800 hover:text-white'
@@ -130,9 +138,9 @@ export default function Navbar() {
             ))}
             {isCoach && (
               <Link
-                to="/settings"
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
-                  isActive('/settings')
+                to={teamPath('/settings')}
+                className={`block px-3 py-3 rounded-md text-base font-medium min-h-[44px] ${
+                  isActive(teamPath('/settings'))
                     ? 'bg-navy-700 text-gold-400'
                     : 'text-gray-300 hover:bg-navy-800 hover:text-white'
                 }`}
@@ -151,7 +159,7 @@ export default function Navbar() {
                 </p>
                 <button
                   onClick={() => { handleSignOut(); setMobileMenuOpen(false) }}
-                  className="block w-full text-left text-sm text-gray-300 hover:text-white"
+                  className="block w-full text-left text-sm text-gray-300 hover:text-white min-h-[44px] py-2"
                 >
                   Sign Out
                 </button>
@@ -159,7 +167,7 @@ export default function Navbar() {
             ) : (
               <Link
                 to="/login"
-                className="block btn-secondary text-center text-sm"
+                className="block btn-secondary text-center text-sm min-h-[44px] flex items-center justify-center"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Sign In

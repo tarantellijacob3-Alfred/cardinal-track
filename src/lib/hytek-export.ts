@@ -13,6 +13,8 @@
 
 import type { Athlete, TrackEvent, MeetEntryWithDetails } from '../types/database'
 
+import type { Team } from '../types/database'
+
 // ── Team config ──
 interface TeamConfig {
   teamCode: string   // 4 char max, e.g. "BISH"
@@ -22,6 +24,17 @@ interface TeamConfig {
 const DEFAULT_TEAM: TeamConfig = {
   teamCode: 'BISH',
   teamName: 'Bishop Snyder',
+}
+
+/**
+ * Convert a Team record to HyTek team config.
+ * Uses first 4 chars of slug (uppercased) as team code.
+ */
+export function teamToHyTekConfig(team: Team): TeamConfig {
+  return {
+    teamCode: team.slug.replace(/-/g, '').substring(0, 4).toUpperCase(),
+    teamName: team.school_name.substring(0, 30),
+  }
 }
 
 // ── Event code mapping ──

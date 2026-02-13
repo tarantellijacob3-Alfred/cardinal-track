@@ -19,13 +19,14 @@ export default function Login() {
     if (err) {
       setError(err.message)
     } else {
-      navigate('/')
+      // After login, redirect to Bishop Snyder dashboard (or use profile.team_id in future)
+      navigate('/t/bishop-snyder')
     }
     setLoading(false)
   }
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gold-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -65,7 +66,7 @@ export default function Login() {
             />
           </div>
 
-          <button type="submit" disabled={loading} className="btn-primary w-full">
+          <button type="submit" disabled={loading} className="btn-primary w-full min-h-[44px]">
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
 
@@ -77,13 +78,13 @@ export default function Login() {
           </p>
 
           <div className="pt-2">
-            <Link to="/meets" className="btn-secondary w-full text-center">
+            <Link to="/t/bishop-snyder/meets" className="btn-secondary w-full text-center block min-h-[44px] flex items-center justify-center">
               Continue as parent or athlete
             </Link>
           </div>
 
           <p className="text-center text-sm text-gray-400">
-            Or <Link to="/search" className="text-navy-600 hover:underline">search athletes</Link> without an account
+            Or <Link to="/t/bishop-snyder/search" className="text-navy-600 hover:underline">search athletes</Link> without an account
           </p>
         </form>
       </div>

@@ -10,6 +10,8 @@ interface AuthContextType {
   loading: boolean
   isCoach: boolean
   isAdmin: boolean
+  /** Check if user is a coach for a specific team */
+  isCoachForTeam: (teamId: string | null) => boolean
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>
   signUp: (email: string, password: string, fullName: string, role: string) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
@@ -18,15 +20,24 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const ADMIN_EMAILS = ['tarantellijacob@gmail.com', 'ttarantelli@gmail.com']
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const ADMIN_EMAILS = ['tarantellijacob@gmail.com', 'ttarantelli@gmail.com']
   const isAdmin = profile?.role === 'admin' || (profile?.email != null && ADMIN_EMAILS.includes(profile.email))
   const isCoach = isAdmin || (profile?.role === 'coach' && profile?.approved === true)
+
+  /** Check if user is coach for a specific team (global admins pass all teams) */
+  function isCoachForTeam(teamId: string | null): boolean {
+    if (!profile) return false
+    if (isAdmin) return true
+    if (profile.role === 'coach' && profile.approved && profile.team_id === teamId) return true
+    return false
+  }
 
   async function fetchProfile(userId: string) {
     const { data } = await supabase
@@ -103,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, session, profile, loading, isCoach, isAdmin,
+      isCoachForTeam,
       signIn, signUp, signOut, refreshProfile
     }}>
       {children}
