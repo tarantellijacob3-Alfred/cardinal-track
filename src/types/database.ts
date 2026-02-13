@@ -148,6 +148,7 @@ export interface Profile {
   role: 'admin' | 'coach' | 'parent' | 'athlete'
   approved: boolean
   team_id: string | null
+  is_super_admin: boolean
   created_at: string
 }
 

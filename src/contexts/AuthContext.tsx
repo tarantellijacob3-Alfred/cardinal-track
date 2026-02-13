@@ -10,6 +10,7 @@ interface AuthContextType {
   loading: boolean
   isCoach: boolean
   isAdmin: boolean
+  isSuperAdmin: boolean
   /** Check if user is a coach for a specific team */
   isCoachForTeam: (teamId: string | null) => boolean
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>
@@ -21,6 +22,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 const ADMIN_EMAILS = ['tarantellijacob@gmail.com', 'ttarantelli@gmail.com']
+const SUPER_ADMIN_EMAILS = ['tarantellijacob@gmail.com']
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -30,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAdmin = profile?.role === 'admin' || (profile?.email != null && ADMIN_EMAILS.includes(profile.email))
   const isCoach = isAdmin || (profile?.role === 'coach' && profile?.approved === true)
+  const isSuperAdmin = profile?.is_super_admin === true || (profile?.email != null && SUPER_ADMIN_EMAILS.includes(profile.email))
 
   /** Check if user is coach for a specific team (global admins pass all teams) */
   function isCoachForTeam(teamId: string | null): boolean {
@@ -114,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user, session, profile, loading, isCoach, isAdmin,
+      user, session, profile, loading, isCoach, isAdmin, isSuperAdmin,
       isCoachForTeam,
       signIn, signUp, signOut, refreshProfile
     }}>

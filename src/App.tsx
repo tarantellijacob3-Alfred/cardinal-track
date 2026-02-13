@@ -18,6 +18,12 @@ import Settings from './pages/Settings'
 import TeamOnboarding from './pages/TeamOnboarding'
 import JoinTeam from './pages/JoinTeam'
 import MyFavorites from './pages/MyFavorites'
+import SuperAdminGuard from './components/SuperAdminGuard'
+import AdminLayout from './components/AdminLayout'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminTeams from './pages/admin/AdminTeams'
+import AdminUsers from './pages/admin/AdminUsers'
+import AdminSeasons from './pages/admin/AdminSeasons'
 
 /** Default team slug for backward-compatible redirects */
 const DEFAULT_SLUG = 'bishop-snyder'
@@ -34,6 +40,14 @@ export default function App() {
           <Route path="/login" element={<Navigate to="/?message=Select a team first, then sign in from their page." replace />} />
           <Route path="/register" element={<Navigate to="/?message=Select a team first, then register from their page." replace />} />
           <Route path="/parent-signup" element={<Navigate to="/?message=Select a team first, then sign up from their page." replace />} />
+
+          {/* ══════ Super Admin Dashboard ══════ */}
+          <Route path="/admin" element={<SuperAdminGuard><AdminLayout /></SuperAdminGuard>}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="teams" element={<AdminTeams />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="seasons" element={<AdminSeasons />} />
+          </Route>
 
           {/* Onboarding stays global (creating a new team) */}
           <Route path="/onboard" element={<TeamOnboarding />} />
