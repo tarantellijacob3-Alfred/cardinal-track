@@ -402,28 +402,28 @@ export default function Settings() {
         ) : (
           <div className="card divide-y divide-gray-100">
             {pendingCoachRequests.map(p => (
-              <div key={p.id} className="py-3 flex items-center justify-between">
+              <div key={p.id} className="py-3 space-y-2">
                 <div>
                   <p className="font-medium text-navy-900">
                     {p.full_name || 'Unnamed'}
                   </p>
-                  <p className="text-sm text-gray-500">{p.email}</p>
+                  <p className="text-sm text-gray-500 truncate">{p.email}</p>
                 </div>
                 {isAdmin && (
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => approveCoach(p.id)}
                       disabled={updatingId === p.id}
-                      className="btn-primary text-sm px-3 py-1"
+                      className="btn-primary text-sm px-3 py-1 min-h-[36px]"
                     >
-                      {updatingId === p.id ? 'Updating...' : 'Approve'}
+                      {updatingId === p.id ? '...' : 'Approve'}
                     </button>
                     <button
                       onClick={() => disapproveCoach(p.id)}
                       disabled={updatingId === p.id}
-                      className="text-sm px-3 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                      className="text-sm px-3 py-1 min-h-[36px] bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
                     >
-                      {updatingId === p.id ? 'Updating...' : 'Disapprove'}
+                      {updatingId === p.id ? '...' : 'Disapprove'}
                     </button>
                   </div>
                 )}
@@ -448,14 +448,14 @@ export default function Settings() {
         ) : (
           <div className="card divide-y divide-gray-100">
             {coaches.map(coach => (
-              <div key={coach.id} className="py-3 flex items-center justify-between">
+              <div key={coach.id} className="py-3 space-y-2">
                 <div>
                   <p className="font-medium text-navy-900">
                     {coach.full_name || 'Unnamed'}
                   </p>
-                  <p className="text-sm text-gray-500">{coach.email}</p>
+                  <p className="text-sm text-gray-500 truncate">{coach.email}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs bg-gold-500 text-navy-900 px-2 py-0.5 rounded-full font-medium">
                     Coach
                   </span>
@@ -516,14 +516,14 @@ export default function Settings() {
         ) : (
           <div className="card divide-y divide-gray-100">
             {parents.map(parent => (
-              <div key={parent.id} className="py-3 flex items-center justify-between">
+              <div key={parent.id} className="py-3 space-y-2">
                 <div>
                   <p className="font-medium text-navy-900">
                     {parent.full_name || 'Unnamed'}
                   </p>
-                  <p className="text-sm text-gray-500">{parent.email}</p>
+                  <p className="text-sm text-gray-500 truncate">{parent.email}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-medium">
                     Parent
                   </span>
