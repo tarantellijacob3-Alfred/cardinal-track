@@ -66,7 +66,7 @@ export default function InstallPrompt() {
             <span className="text-yellow-400 font-bold text-sm">TB</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-gray-900 text-sm">Add TrackBoard to Home Screen</p>
+            <p className="font-semibold text-gray-900 text-sm">Add TrackRoster to Home Screen</p>
             <p className="text-gray-500 text-xs mt-0.5">
               Quick access at meets — works offline too!
             </p>

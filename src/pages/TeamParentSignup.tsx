@@ -165,7 +165,7 @@ export default function TeamParentSignup() {
 
           <div className="pt-2 border-t border-gray-100">
             <Link to="/" className="block text-center text-sm text-gray-400 hover:text-gray-600">
-              ← Back to TrackBoard
+              ← Back to TrackRoster
             </Link>
           </div>
         </form>

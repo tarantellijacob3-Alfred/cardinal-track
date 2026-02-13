@@ -338,7 +338,7 @@ export default function MeetReport() {
         </table>
 
         <div className="mt-6 text-center text-xs text-gray-400">
-          TrackBoard — {schoolName} Track &amp; Field — Printed {new Date().toLocaleDateString()}
+          TrackRoster — {schoolName} Track &amp; Field — Printed {new Date().toLocaleDateString()}
         </div>
       </div>
     </div>

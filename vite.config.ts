@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'TrackBoard — Track & Field Team Manager',
-        short_name: 'TrackBoard',
+        name: 'TrackRoster — Track & Field Team Manager',
+        short_name: 'TrackRoster',
         description: 'Manage your track & field team — roster, meets, results, and more.',
         theme_color: '#102a43',
         background_color: '#f9fafb',

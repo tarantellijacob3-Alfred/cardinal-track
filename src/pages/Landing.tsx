@@ -49,9 +49,9 @@ export default function Landing() {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-            <span className="text-white font-bold text-lg">TB</span>
+            <span className="text-white font-bold text-lg">TR</span>
           </div>
-          <span className="text-white font-bold text-xl">TrackBoard</span>
+          <span className="text-white font-bold text-xl">TrackRoster</span>
         </div>
         <div className="flex items-center space-x-4">
           {user ? (
@@ -142,7 +142,7 @@ export default function Landing() {
           <div className="text-center mb-10">
             <h2 className="text-3xl font-bold text-white">Find Your Team</h2>
             <p className="text-gray-400 mt-2">
-              Browse active teams on TrackBoard or search by name.
+              Browse active teams on TrackRoster or search by name.
             </p>
           </div>
 
@@ -183,7 +183,7 @@ export default function Landing() {
           ) : filteredTeams.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-400 text-lg">
-                {search ? `No teams found for "${search}"` : 'No teams on TrackBoard yet.'}
+                {search ? `No teams found for "${search}"` : 'No teams on TrackRoster yet.'}
               </p>
               <Link
                 to="/onboard"
@@ -252,8 +252,8 @@ export default function Landing() {
       {/* Footer */}
       <footer className="border-t border-gray-700 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-500">
-          <p>TrackBoard &mdash; Track &amp; Field Team Management Platform</p>
-          <p className="mt-1">© {new Date().getFullYear()} TrackBoard</p>
+          <p>TrackRoster &mdash; Track &amp; Field Team Management Platform</p>
+          <p className="mt-1">© {new Date().getFullYear()} TrackRoster</p>
         </div>
       </footer>
     </div>

@@ -104,9 +104,9 @@ export default function Navbar() {
             <Link
               to="/welcome"
               className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
-              title="Back to TrackBoard directory"
+              title="Back to TrackRoster directory"
             >
-              ← TrackBoard
+              ← TrackRoster
             </Link>
             {user ? (
               <>
@@ -210,7 +210,7 @@ export default function Navbar() {
               className="block mt-2 text-center text-sm text-gray-500 hover:text-gray-300 py-2"
               onClick={() => setMobileMenuOpen(false)}
             >
-              ← Back to TrackBoard
+              ← Back to TrackRoster
             </Link>
           </div>
         </div>

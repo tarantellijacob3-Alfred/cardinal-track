@@ -37,7 +37,7 @@ export default function Layout() {
       </main>
       <footer className="no-print border-t border-gray-200 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm text-gray-500">
-          <p>{team.name} &mdash; {team.school_name} · Powered by TrackBoard</p>
+          <p>{team.name} &mdash; {team.school_name} · Powered by TrackRoster</p>
           <p className="mt-1">© {new Date().getFullYear()} {team.school_name}</p>
         </div>
       </footer>

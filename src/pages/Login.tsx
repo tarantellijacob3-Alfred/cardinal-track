@@ -32,7 +32,7 @@ export default function Login() {
           <div className="w-16 h-16 bg-gold-500 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-navy-900 font-bold text-xl">BS</span>
           </div>
-          <h1 className="text-3xl font-bold text-navy-900">TrackBoard</h1>
+          <h1 className="text-3xl font-bold text-navy-900">TrackRoster</h1>
           <p className="text-gray-500 mt-1">Sign in to your account</p>
         </div>
 

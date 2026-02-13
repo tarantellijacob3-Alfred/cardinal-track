@@ -238,9 +238,9 @@ export default function TeamOnboarding() {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
         <Link to="/welcome" className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-            <span className="text-white font-bold text-lg">TB</span>
+            <span className="text-white font-bold text-lg">TR</span>
           </div>
-          <span className="text-white font-bold text-xl">TrackBoard</span>
+          <span className="text-white font-bold text-xl">TrackRoster</span>
         </Link>
         <Link to="/login" className="text-gray-300 hover:text-white text-sm font-medium">
           Already have an account? Sign In
@@ -392,7 +392,7 @@ export default function TeamOnboarding() {
                   <span className="text-gray-400 font-normal ml-1">(auto-generated)</span>
                 </label>
                 <div className="flex items-center">
-                  <span className="text-gray-400 text-sm mr-1">trackboard.app/t/</span>
+                  <span className="text-gray-400 text-sm mr-1">mytrackroster.com/t/</span>
                   <input
                     type="text"
                     value={teamInfo.slug}
@@ -496,7 +496,7 @@ export default function TeamOnboarding() {
         {step === 3 && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl">
             <h2 className="text-2xl font-bold text-navy-900 mb-1">Your Plan</h2>
-            <p className="text-gray-500 mb-6">Try TrackBoard free for {TRIAL_DAYS} days — no payment info needed</p>
+            <p className="text-gray-500 mb-6">Try TrackRoster free for {TRIAL_DAYS} days — no payment info needed</p>
 
             <div className="border-2 border-gold-400 rounded-xl p-6 relative">
               <div className="absolute -top-3 left-4 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">

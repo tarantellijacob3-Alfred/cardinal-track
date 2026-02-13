@@ -38,7 +38,7 @@ export default function App() {
         <InstallPrompt />
         <Routes>
           {/* Root → Bishop Snyder (since domain is bishop-snyder-track.vercel.app) */}
-          {/* When we get a TrackBoard domain, change back to <Landing /> */}
+          {/* When we get a TrackRoster domain, change back to <Landing /> */}
           <Route path="/" element={<Navigate to="/t/bishop-snyder" replace />} />
           {/* Landing page still accessible for new team signups */}
           <Route path="/welcome" element={<Landing />} />

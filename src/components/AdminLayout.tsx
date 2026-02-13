@@ -45,7 +45,7 @@ export default function AdminLayout() {
             href="/"
             className="block px-4 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
           >
-            ← Back to TrackBoard
+            ← Back to TrackRoster
           </a>
           <button
             onClick={signOut}
@@ -64,7 +64,7 @@ export default function AdminLayout() {
               <span className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center text-xs">⚡</span>
               Super Admin
             </h1>
-            <a href="/" className="text-sm text-gray-400 hover:text-white">← TrackBoard</a>
+            <a href="/" className="text-sm text-gray-400 hover:text-white">← TrackRoster</a>
           </div>
           <nav className="flex gap-1 overflow-x-auto pb-1">
             {navItems.map((item) => (

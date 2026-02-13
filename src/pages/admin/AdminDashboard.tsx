@@ -78,7 +78,7 @@ export default function AdminDashboard() {
     <div className="max-w-7xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-white">Dashboard Overview</h1>
-        <p className="text-gray-400 mt-1">TrackBoard platform at a glance</p>
+        <p className="text-gray-400 mt-1">TrackRoster platform at a glance</p>
       </div>
 
       {/* Stats Grid */}
