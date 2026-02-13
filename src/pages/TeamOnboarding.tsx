@@ -155,11 +155,11 @@ export default function TeamOnboarding() {
         const fileExt = teamInfo.logoFile.name.split('.').pop()
         const filePath = `team-logos/${slug}.${fileExt}`
         const { error: uploadErr } = await supabase.storage
-          .from('public')
+          .from('team-assets')
           .upload(filePath, teamInfo.logoFile, { upsert: true })
 
         if (!uploadErr) {
-          const { data: urlData } = supabase.storage.from('public').getPublicUrl(filePath)
+          const { data: urlData } = supabase.storage.from('team-assets').getPublicUrl(filePath)
           logoUrl = urlData.publicUrl
         }
       }

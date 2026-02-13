@@ -39,11 +39,11 @@ function TeamBrandingSection({ team, teamId }: { team: Team | null; teamId: stri
         const fileExt = logoFile.name.split('.').pop()
         const filePath = `team-logos/${team.slug}.${fileExt}`
         const { error: uploadErr } = await supabase.storage
-          .from('public')
+          .from('team-assets')
           .upload(filePath, logoFile, { upsert: true })
 
         if (!uploadErr) {
-          const { data: urlData } = supabase.storage.from('public').getPublicUrl(filePath)
+          const { data: urlData } = supabase.storage.from('team-assets').getPublicUrl(filePath)
           logoUrl = urlData.publicUrl
         }
       }
