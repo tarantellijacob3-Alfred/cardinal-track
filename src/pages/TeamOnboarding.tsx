@@ -21,8 +21,7 @@ interface TeamInfo {
   secondaryColor: string
 }
 
-// TODO: Replace with actual Stripe Payment Link from Jacob's Stripe dashboard
-const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/PLACEHOLDER_REPLACE_ME'
+const TRIAL_DAYS = 14
 
 function slugify(text: string): string {
   return text
@@ -165,6 +164,10 @@ export default function TeamOnboarding() {
         }
       }
 
+      // Calculate trial expiration (14 days from now)
+      const trialExpires = new Date()
+      trialExpires.setDate(trialExpires.getDate() + TRIAL_DAYS)
+
       // Create the team
       const { data: team, error: teamErr } = await supabase
         .from('teams')
@@ -178,6 +181,8 @@ export default function TeamOnboarding() {
           is_grandfathered: false,
           active: true,
           stripe_subscription_id: null,
+          trial_expires_at: trialExpires.toISOString(),
+          created_by: currentUser.user.id,
         } as Record<string, unknown>)
         .select()
         .single()
@@ -197,9 +202,6 @@ export default function TeamOnboarding() {
       await refreshProfile()
       setCreatedSlug(slug)
 
-      // TODO: Redirect to actual Stripe Checkout with team ID metadata
-      // For now, redirect to the new team dashboard
-      // When Stripe is set up, uncomment: window.location.href = `${STRIPE_PAYMENT_LINK}?client_reference_id=${(team as { id: string }).id}`
       navigate(`/t/${slug}`)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to create team')
@@ -479,15 +481,15 @@ export default function TeamOnboarding() {
           </div>
         )}
 
-        {/* ══════ Step 3: Plan Selection ══════ */}
+        {/* ══════ Step 3: Plan Info (Free Trial) ══════ */}
         {step === 3 && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl">
-            <h2 className="text-2xl font-bold text-navy-900 mb-1">Choose Your Plan</h2>
-            <p className="text-gray-500 mb-6">Everything you need to manage your track program</p>
+            <h2 className="text-2xl font-bold text-navy-900 mb-1">Your Plan</h2>
+            <p className="text-gray-500 mb-6">Try TrackBoard free for {TRIAL_DAYS} days — no payment info needed</p>
 
             <div className="border-2 border-gold-400 rounded-xl p-6 relative">
-              <div className="absolute -top-3 left-4 bg-gold-400 text-navy-900 text-xs font-bold px-3 py-1 rounded-full">
-                RECOMMENDED
+              <div className="absolute -top-3 left-4 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                {TRIAL_DAYS}-DAY FREE TRIAL
               </div>
               <div className="flex items-baseline justify-between mb-4">
                 <div>
@@ -498,6 +500,15 @@ export default function TeamOnboarding() {
                   <span className="text-3xl font-bold text-navy-900">$300</span>
                   <span className="text-gray-500">/season</span>
                 </div>
+              </div>
+
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-green-800 font-medium">
+                  🎉 Start free today — no credit card required
+                </p>
+                <p className="text-xs text-green-700 mt-1">
+                  You'll have full access for {TRIAL_DAYS} days. After that, subscribe at $300/season to keep your team active.
+                </p>
               </div>
 
               <ul className="space-y-3 mb-6">
@@ -515,8 +526,12 @@ export default function TeamOnboarding() {
                 onClick={handleSelectPlan}
                 className="btn-primary w-full min-h-[44px] text-lg"
               >
-                Select Plan & Create Team
+                Start Free Trial & Create Team
               </button>
+
+              <p className="text-xs text-gray-400 text-center mt-3">
+                No payment info needed. After {TRIAL_DAYS} days, access pauses until you subscribe.
+              </p>
             </div>
 
             <button
@@ -542,12 +557,9 @@ export default function TeamOnboarding() {
               </code>
             </p>
 
-            {/* TODO: When Stripe is set up, this should redirect to Stripe Checkout first,
-                then create the team on successful payment via webhook.
-                For now, we create the team directly and skip payment. */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6 text-left">
-              <p className="text-sm text-yellow-800">
-                <strong>Note:</strong> Payment integration coming soon. Your team will be created immediately for now.
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6 text-left">
+              <p className="text-sm text-green-800">
+                ✅ Your {TRIAL_DAYS}-day free trial starts now. Full access, no strings attached.
               </p>
             </div>
 
@@ -562,7 +574,7 @@ export default function TeamOnboarding() {
                   <span>Creating your team...</span>
                 </span>
               ) : (
-                'Create Team & Get Started'
+                'Launch My Team 🚀'
               )}
             </button>
 

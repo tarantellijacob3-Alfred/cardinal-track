@@ -61,6 +61,8 @@ export interface Team {
   stripe_subscription_id: string | null
   is_grandfathered: boolean
   active: boolean
+  trial_expires_at: string | null
+  created_by: string | null
   created_at: string
 }
 
