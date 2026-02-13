@@ -160,11 +160,14 @@ export default function PublicSearch() {
                   <h2 className="text-xl font-bold text-navy-900">
                     {selectedAthlete.first_name} {selectedAthlete.last_name}
                   </h2>
-                  <div className="flex items-center space-x-2 mt-0.5">
+                  <div className="flex items-center space-x-2 mt-0.5 flex-wrap">
                     <span className={`badge ${selectedAthlete.level === 'JV' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
                       {selectedAthlete.level}
                     </span>
                     <span className="badge bg-gray-100 text-gray-800">{selectedAthlete.gender}</span>
+                    <span className="badge bg-navy-100 text-navy-800">
+                      {Object.keys(entriesByMeet).length} {Object.keys(entriesByMeet).length === 1 ? 'meet' : 'meets'}
+                    </span>
                   </div>
                 </div>
               </div>
