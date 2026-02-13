@@ -112,6 +112,8 @@ export default function PublicSearch() {
                         <p className="text-xs text-gray-500">
                           {athlete.level} {athlete.gender}
                           {athlete.grade ? ` · Grade ${athlete.grade}` : ''}
+                          {' · '}
+                          {new Set(allEntries.filter(e => e.athlete_id === athlete.id).map(e => e.meet_id)).size} meets
                         </p>
                       </div>
                     </div>
