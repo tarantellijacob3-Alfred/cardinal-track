@@ -4,7 +4,172 @@ import { useAuth } from '../contexts/AuthContext'
 import { useTeam } from '../hooks/useTeam'
 import { useSeasons } from '../hooks/useSeasons'
 import SeasonModal from '../components/SeasonModal'
-import type { Profile, Season } from '../types/database'
+import type { Profile, Season, Team } from '../types/database'
+
+function TeamBrandingSection({ team, teamId }: { team: Team | null; teamId: string | null }) {
+  const [primaryColor, setPrimaryColor] = useState(team?.primary_color || '#1e3a5f')
+  const [secondaryColor, setSecondaryColor] = useState(team?.secondary_color || '#c5a900')
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(team?.logo_url || null)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  if (!team || !teamId) return null
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setLogoFile(file)
+      setLogoPreview(URL.createObjectURL(file))
+    }
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    setSaved(false)
+
+    try {
+      let logoUrl = team.logo_url
+
+      // Upload new logo if provided
+      if (logoFile) {
+        const fileExt = logoFile.name.split('.').pop()
+        const filePath = `team-logos/${team.slug}.${fileExt}`
+        const { error: uploadErr } = await supabase.storage
+          .from('public')
+          .upload(filePath, logoFile, { upsert: true })
+
+        if (!uploadErr) {
+          const { data: urlData } = supabase.storage.from('public').getPublicUrl(filePath)
+          logoUrl = urlData.publicUrl
+        }
+      }
+
+      const { error } = await supabase
+        .from('teams')
+        .update({
+          primary_color: primaryColor,
+          secondary_color: secondaryColor,
+          logo_url: logoUrl,
+        } as Record<string, unknown>)
+        .eq('id', teamId)
+
+      if (error) {
+        alert('Failed to save: ' + error.message)
+      } else {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2000)
+        // Reload to reflect new colors
+        setTimeout(() => window.location.reload(), 500)
+      }
+    } catch (err) {
+      alert('Failed to save branding')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="card">
+      <h2 className="text-lg font-semibold text-navy-900 mb-4">Team Branding</h2>
+
+      <div className="space-y-4">
+        {/* Logo */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Team Logo</label>
+          <div className="flex items-center space-x-4">
+            {logoPreview ? (
+              <img src={logoPreview} alt="Logo" className="w-16 h-16 object-contain rounded-lg border border-gray-200" />
+            ) : (
+              <div
+                className="w-16 h-16 rounded-lg flex items-center justify-center text-white font-bold text-xl"
+                style={{ backgroundColor: primaryColor }}
+              >
+                {team.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleLogoChange}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-navy-50 file:text-navy-700 hover:file:bg-navy-100"
+              />
+              <p className="text-xs text-gray-400 mt-1">PNG, JPG, or SVG recommended</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Colors */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Primary Color</label>
+            <div className="flex items-center space-x-2">
+              <input
+                type="color"
+                value={primaryColor}
+                onChange={e => setPrimaryColor(e.target.value)}
+                className="w-10 h-10 rounded border border-gray-200 cursor-pointer"
+              />
+              <input
+                type="text"
+                value={primaryColor}
+                onChange={e => setPrimaryColor(e.target.value)}
+                className="input flex-1 text-sm"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Secondary Color</label>
+            <div className="flex items-center space-x-2">
+              <input
+                type="color"
+                value={secondaryColor}
+                onChange={e => setSecondaryColor(e.target.value)}
+                className="w-10 h-10 rounded border border-gray-200 cursor-pointer"
+              />
+              <input
+                type="text"
+                value={secondaryColor}
+                onChange={e => setSecondaryColor(e.target.value)}
+                className="input flex-1 text-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Preview */}
+        <div className="border border-gray-200 rounded-lg p-4">
+          <p className="text-xs text-gray-400 mb-2">Preview</p>
+          <div className="flex items-center space-x-3">
+            {logoPreview ? (
+              <img src={logoPreview} alt="Preview" className="w-10 h-10 object-contain" />
+            ) : (
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                style={{ backgroundColor: primaryColor }}
+              >
+                {team.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <p className="font-bold" style={{ color: primaryColor }}>{team.name}</p>
+              <p className="text-xs" style={{ color: secondaryColor }}>{team.school_name}</p>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="btn-primary min-h-[44px]"
+        >
+          {saving ? 'Saving...' : saved ? '✓ Saved!' : 'Save Branding'}
+        </button>
+      </div>
+    </div>
+  )
+}
 
 function ChevronIcon({ expanded }: { expanded: boolean }) {
   return (
@@ -63,7 +228,7 @@ function CollapsibleSection({
 
 export default function Settings() {
   const { isCoach, isAdmin, profile: currentProfile } = useAuth()
-  const { guestMode } = useTeam()
+  const { team, teamId, guestMode } = useTeam()
   const { seasons, loading: seasonsLoading, addSeason, updateSeason, deleteSeason, setActiveSeason, refetch: refetchSeasons } = useSeasons()
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
@@ -112,6 +277,7 @@ export default function Settings() {
     const { data } = await supabase
       .from('profiles')
       .select('*')
+      .eq('team_id', teamId)
       .order('full_name')
     setProfiles((data as Profile[]) || [])
     setLoading(false)
@@ -277,8 +443,11 @@ export default function Settings() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-navy-900">Settings</h1>
-        <p className="text-gray-600 mt-1">Manage user accounts, permissions, and seasons</p>
+        <p className="text-gray-600 mt-1">Manage your team, user accounts, permissions, and seasons</p>
       </div>
+
+      {/* ═══ Team Branding ═══ */}
+      <TeamBrandingSection team={team} teamId={teamId} />
 
       {/* ═══ Season Management ═══ */}
       <CollapsibleSection

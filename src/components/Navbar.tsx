@@ -34,10 +34,12 @@ export default function Navbar() {
     { path: teamPath('/search'), label: 'Search' },
   ]
 
-  // Use team logo or fallback
-  const logoUrl = team?.logo_url || '/cardinal-logo.jpg'
+  // Use team logo or initials fallback
+  const logoUrl = team?.logo_url || null
   const teamName = team?.name || 'Track Team'
   const schoolName = team?.school_name || 'Track & Field'
+  const primaryColor = team?.primary_color || '#3B82F6'
+  const secondaryColor = team?.secondary_color || '#c5a900'
 
   return (
     <nav className="no-print bg-navy-950 text-white shadow-lg">
@@ -46,10 +48,19 @@ export default function Navbar() {
           {/* Logo */}
           <div className="flex items-center space-x-3">
             <Link to={teamPath('/')} className="flex items-center space-x-3">
-              <img src={logoUrl} alt={teamName} className="w-10 h-10 object-contain" />
+              {logoUrl ? (
+                <img src={logoUrl} alt={teamName} className="w-10 h-10 object-contain" />
+              ) : (
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  {teamName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                </div>
+              )}
               <div className="hidden sm:block">
-                <div className="font-bold text-lg leading-tight text-cardinal-600">{teamName}</div>
-                <div className="text-gold-400 text-xs leading-tight">
+                <div className="font-bold text-lg leading-tight" style={{ color: primaryColor }}>{teamName}</div>
+                <div className="text-xs leading-tight" style={{ color: secondaryColor }}>
                   {schoolName}
                   {activeSeason && (
                     <span className="ml-1 text-gray-400">· {activeSeason.name}</span>
