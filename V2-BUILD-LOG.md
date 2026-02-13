@@ -1,9 +1,60 @@
 # V2 Build Log — Multi-Team Foundation
 
-**Built:** 2025-07-11 (Phases 1/2/4/6), 2025-07-12 (Phases 5/7/8), 2025-07-13 (UX Overhaul)  
-**Phases Completed:** 1 (Foundation), 2 (URL Routing), 4 (CSV Upload), 5 (Parent Signup + Favorites), 6 (Mobile Polish), 7 (Team Onboarding + Stripe), 8 (TFRRS Auto-Linking), **UX Overhaul** (TrackBoard branding, team-scoped auth, favorites on dashboard)  
+**Built:** 2025-07-11 (Phases 1/2/4/6), 2025-07-12 (Phases 5/7/8), 2025-07-13 (UX Overhaul), 2025-07-14 (Guest Mode + Seasons), 2025-07-15 (Super Admin Dashboard)  
+**Phases Completed:** 1 (Foundation), 2 (URL Routing), 4 (CSV Upload), 5 (Parent Signup + Favorites), 6 (Mobile Polish), 7 (Team Onboarding + Stripe), 8 (TFRRS Auto-Linking), **UX Overhaul** (TrackBoard branding, team-scoped auth, favorites on dashboard), **Super Admin Dashboard**  
 **Build Status:** ✅ Compiles & builds successfully with zero errors  
 **Deployment:** LOCAL ONLY — NOT deployed to Vercel  
+
+---
+
+## Super Admin Dashboard (2025-07-15)
+
+### Overview
+Full super admin dashboard at `/admin` — only accessible to super admins. Dark-themed admin UI with sidebar navigation, cross-team management of teams, users, and seasons.
+
+### Migration: `supabase/migrations/00013_super_admin.sql`
+**⚠️ Jacob needs to run this migration in Supabase SQL Editor.**
+1. Adds `is_super_admin` boolean column to `profiles` (default false)
+2. Sets `tarantellijacob@gmail.com` as founding super admin
+3. Updates ALL existing RLS write policies on athletes, meets, meet_entries, seasons, tfrrs_meet_links, events to allow super admins full access
+4. Adds super admin policies for profiles (update/delete any), teams (update/delete), and favorites (read all)
+5. Pattern: Every write policy now includes `OR EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_super_admin = true)`
+
+### New Files
+| File | Purpose |
+|------|---------|
+| `src/components/SuperAdminGuard.tsx` | Route guard: checks `isSuperAdmin` from auth context. Shows "Access Denied" + redirect for non-super-admins. |
+| `src/components/AdminLayout.tsx` | Dark-themed layout with sidebar nav (Overview, Teams, Users, Seasons, Back to TrackBoard). Responsive with mobile horizontal nav. |
+| `src/pages/admin/AdminDashboard.tsx` | Overview: total teams/users/athletes counts, revenue overview (subscribed/grandfathered/free), recent team signups, recent users. |
+| `src/pages/admin/AdminTeams.tsx` | Team management: list all teams with search, athlete/meet counts, subscription status. Edit modal (name, school, slug, colors, logo, active, grandfathered). Create team manually. Delete team with confirmation. "View as Team" opens `/t/[slug]` in new tab. |
+| `src/pages/admin/AdminUsers.tsx` | User management: list all users across all teams with search/filter by name, email, role, team. Inline toggle for approved/super admin status. Edit modal (role, team, approved, super admin). Delete user with confirmation. |
+| `src/pages/admin/AdminSeasons.tsx` | Season management: view all seasons across teams, filter by team. Create/edit/delete seasons. Toggle active status (auto-deactivates other seasons for same team). |
+
+### Modified Files
+| File | Changes |
+|------|---------|
+| `src/types/database.ts` | Added `is_super_admin: boolean` to `Profile` interface. |
+| `src/contexts/AuthContext.tsx` | Added `isSuperAdmin` to context type and provider. Checks `profile.is_super_admin === true` OR email in `['tarantellijacob@gmail.com']` hardcoded fallback. |
+| `src/App.tsx` | Added `/admin` route tree wrapped in `SuperAdminGuard` with `AdminLayout` and all four admin pages. |
+
+### Who is a Super Admin
+- `tarantellijacob@gmail.com` is hardcoded as founding super admin (fallback even without DB column)
+- Super admins can promote/demote other users via the Users page
+- DB column `profiles.is_super_admin` is the source of truth (hardcoded list is fallback)
+
+### Route Structure
+```
+/admin                → Admin Dashboard (Overview)
+/admin/teams          → Team Management
+/admin/users          → User Management
+/admin/seasons        → Season Management
+```
+
+### What Was NOT Changed
+- All existing pages, components, hooks — zero changes
+- All existing RLS SELECT policies — preserved (read access unchanged)
+- Bishop Snyder data — untouched
+- No deployment to Vercel
 
 ---
 
