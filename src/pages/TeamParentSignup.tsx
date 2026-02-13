@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useTeam, useTeamPath } from '../hooks/useTeam'
+import TeamSwitcher from '../components/TeamSwitcher'
 
 export default function TeamParentSignup() {
   const navigate = useNavigate()
@@ -79,6 +80,8 @@ export default function TeamParentSignup() {
           <h1 className="text-3xl font-bold text-navy-900">Join {teamName}</h1>
           <p className="text-gray-500 mt-1">Create a free account to follow your favorite athletes</p>
         </div>
+
+        <TeamSwitcher authPath="/parent-signup" />
 
         <form onSubmit={handleSubmit} className="card space-y-4">
           {error && (

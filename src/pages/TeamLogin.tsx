@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTeam, useTeamPath } from '../hooks/useTeam'
+import TeamSwitcher from '../components/TeamSwitcher'
 
 export default function TeamLogin() {
   const [email, setEmail] = useState('')
@@ -52,6 +53,8 @@ export default function TeamLogin() {
             {schoolName ? `${schoolName} — ` : ''}Sign in to your account
           </p>
         </div>
+
+        <TeamSwitcher authPath="/login" />
 
         <form onSubmit={handleSubmit} className="card space-y-4">
           {error && (

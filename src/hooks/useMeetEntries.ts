@@ -115,12 +115,14 @@ export function useAthleteEntries(athleteId: string | undefined) {
 
     async function fetchEntries() {
       setLoading(true)
+      // Use meets!inner to only return entries where the meet still exists
       const { data, error } = await supabase
         .from('meet_entries')
         .select(`
           *,
           athletes (*),
-          events (*)
+          events (*),
+          meets!inner (*)
         `)
         .eq('athlete_id', athleteId!)
 

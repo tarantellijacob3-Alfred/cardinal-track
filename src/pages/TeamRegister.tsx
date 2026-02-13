@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTeam, useTeamPath } from '../hooks/useTeam'
 import { supabase } from '../lib/supabase'
+import TeamSwitcher from '../components/TeamSwitcher'
 
 export default function TeamRegister() {
   const [email, setEmail] = useState('')
@@ -74,6 +75,8 @@ export default function TeamRegister() {
           <h1 className="text-3xl font-bold text-navy-900">Coach Registration</h1>
           <p className="text-gray-500 mt-1">Register as a coach for {teamName}</p>
         </div>
+
+        <TeamSwitcher authPath="/register" />
 
         <form onSubmit={handleSubmit} className="card space-y-4">
           {error && (

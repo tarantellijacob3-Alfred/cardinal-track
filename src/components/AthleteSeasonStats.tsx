@@ -28,29 +28,15 @@ export default function AthleteSeasonStats({ athleteId }: AthleteSeasonStatsProp
     async function fetchStats() {
       setLoading(true)
 
-      // Get meets in this season
-      const { data: seasonMeets } = await supabase
-        .from('meets')
-        .select('id')
-        .eq('season_id', selectedSeasonId!)
-
-      if (!seasonMeets || seasonMeets.length === 0) {
-        setEventCount(0)
-        setMeetCount(0)
-        setLoading(false)
-        return
-      }
-
-      const meetIds = seasonMeets.map(m => m.id)
-
-      // Count entries for this athlete in those meets
+      // Use !inner join to only count entries whose meet still exists
+      // and belongs to the selected season
       const { data: entries } = await supabase
         .from('meet_entries')
-        .select('meet_id')
+        .select('id, meet_id, meets!inner(id, season_id)')
         .eq('athlete_id', athleteId)
-        .in('meet_id', meetIds)
+        .eq('meets.season_id', selectedSeasonId!)
 
-      if (entries) {
+      if (entries && entries.length > 0) {
         setEventCount(entries.length)
         const uniqueMeets = new Set(entries.map(e => e.meet_id))
         setMeetCount(uniqueMeets.size)
