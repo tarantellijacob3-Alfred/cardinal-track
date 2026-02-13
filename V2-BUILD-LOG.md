@@ -114,6 +114,97 @@
 
 ---
 
+## Cross-Team Guest Mode + Season Management (2025-07-14)
+
+### Feature 1: Cross-Team Viewing Warning (Guest Mode)
+
+When a logged-in user navigates to a team that is NOT their `profile.team_id`, a modal appears asking them to either "View as Guest" (read-only) or "Go Back" to the landing page.
+
+**New files:**
+| File | Purpose |
+|------|---------|
+| `src/components/TeamGuard.tsx` | Modal component that detects cross-team viewing. Fetches user's team name, shows warning, sets `guestMode` flag on TeamContext. |
+| `src/components/GuestBanner.tsx` | Subtle amber banner at top of page: "👀 Viewing [Team Name] as guest" |
+
+**Modified files:**
+| File | Changes |
+|------|---------|
+| `src/contexts/TeamContext.tsx` | Added `guestMode` and `setGuestMode` state. Resets on team change. |
+| `src/hooks/useTeam.ts` | Exposes `guestMode` and `setGuestMode` from context. |
+| `src/components/Layout.tsx` | Renders `<TeamGuard />` and `<GuestBanner />`. |
+| `src/components/Navbar.tsx` | Uses `effectiveIsCoach` (isCoach && !guestMode). Shows "Guest" badge. Hides Settings link in guest mode. |
+| `src/pages/Dashboard.tsx` | Hides coach buttons and favorites section in guest mode. |
+| `src/pages/Meets.tsx` | Hides "New Meet" button and delete buttons in guest mode. |
+| `src/pages/Roster.tsx` | Hides "Add Athlete", "Import Athletes" buttons and inline edit in guest mode. |
+| `src/pages/MeetDetail.tsx` | Hides "Copy from Meet", TFRRS editing, coach settings bar, and passes `effectiveIsCoach` to EventCard/GridView. |
+| `src/pages/AthleteDetail.tsx` | Hides favorite button and TFRRS editing in guest mode. |
+| `src/pages/PublicSearch.tsx` | Hides favorite buttons in guest mode. |
+| `src/pages/Settings.tsx` | Shows parent/viewer view in guest mode (not coach tools). |
+
+**Guest mode behavior:**
+- Does NOT sign the user out of Supabase
+- Hides all coach edit/add/delete buttons
+- Hides favorites functionality (star buttons)
+- Shows subtle amber "Viewing as guest" banner
+- User stays logged in but sees the other team in read-only
+- Navigating to their own team works normally (no warning)
+
+### Feature 2: Season Management
+
+**New migration: `supabase/migrations/00012_seasons.sql`**
+- Creates `seasons` table (id, team_id, name, start_date, end_date, is_active, created_at)
+- Unique partial index ensures only one active season per team
+- RLS: public read, coaches can insert/update/delete for their team
+- Adds `season_id` column to `meets` table (nullable, FK to seasons)
+- Seeds "Spring 2026" season for Bishop Snyder, backfills all existing meets
+
+**New files:**
+| File | Purpose |
+|------|---------|
+| `src/hooks/useSeasons.ts` | CRUD hook: fetch seasons by team, add/update/delete season, setActiveSeason (deactivates all others first). |
+| `src/components/SeasonSelector.tsx` | Small dropdown showing all seasons for the team. "All Seasons" option + per-season options. Active season marked with ✦. |
+| `src/components/SeasonModal.tsx` | Modal for coaches to create/edit a season (name, start date, end date). |
+| `src/components/AthleteSeasonStats.tsx` | Displays meet count and event count for an athlete in the selected season. Queries meets by season_id, then counts meet_entries. |
+
+**Modified files:**
+| File | Changes |
+|------|---------|
+| `src/types/database.ts` | Added `Season`, `SeasonInsert`, `SeasonUpdate` types. Added `season_id` to `Meet` type. |
+| `src/contexts/TeamContext.tsx` | Fetches seasons on team load. Manages `selectedSeasonId` state (defaults to active season). Provides seasons list and activeSeason. |
+| `src/hooks/useTeam.ts` | Exposes `selectedSeasonId`, `setSelectedSeasonId`, `seasons`, `seasonsLoading`, `activeSeason`. |
+| `src/hooks/useMeets.ts` | Accepts optional `seasonFilter` parameter. When provided, filters meets by `season_id`. |
+| `src/pages/Dashboard.tsx` | SeasonSelector in hero section. Meets filtered by selected season. Stats reflect season-filtered data. |
+| `src/pages/Meets.tsx` | SeasonSelector next to "New Meet" button. Meets filtered by season. New meets auto-assigned to active season. Shows season name hint in create form. |
+| `src/pages/Roster.tsx` | SeasonSelector in header. Shows `AthleteSeasonStats` per athlete when a season is selected. |
+| `src/pages/AthleteDetail.tsx` | SeasonSelector next to back button. Entries filtered by selected season. Shows `AthleteSeasonStats` in header. Stats (meets count, entries count) reflect filtered data. |
+| `src/pages/Settings.tsx` | New "Season Management" section: lists all seasons, create/edit/delete, "Set Active" button. Uses SeasonModal. |
+| `src/components/Navbar.tsx` | Shows active season name next to school name in logo area. |
+
+**Season UX flow:**
+1. Coach visits dashboard → sees active season's data by default
+2. SeasonSelector dropdown on Dashboard, Meets, Roster, AthleteDetail lets them switch seasons
+3. "All Seasons" option shows everything (no filter)
+4. Settings → Season Management → "New Season" → name + start date → create
+5. "Set Active" deactivates old season, activates new one
+6. New meets auto-link to active season
+7. AthleteSeasonStats shows per-athlete event/meet counts scoped to selected season
+
+### Migration Instructions
+
+**Jacob needs to run migration 00012 in Supabase SQL Editor:**
+- File: `supabase/migrations/00012_seasons.sql`
+- Creates `seasons` table with RLS
+- Adds `season_id` column to `meets`
+- Seeds "Spring 2026" for Bishop Snyder and backfills existing meets
+
+### Build Status
+- ✅ `npm run build` passes with zero errors
+- ✅ NOT deployed to Vercel
+- ✅ All existing features preserved
+- ✅ Bishop Snyder remains FREE FOREVER
+
+---
+
 ## Phase 1: Foundation (Database + Team Scoping)
 
 ### New Migrations
