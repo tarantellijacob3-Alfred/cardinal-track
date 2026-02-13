@@ -368,11 +368,15 @@ export default function Roster() {
               <div key={athlete.id} className="card">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3 min-w-0 flex-1">
-                    <div className="flex-shrink-0 w-10 h-10 bg-navy-100 rounded-full flex items-center justify-center">
+                    <Link
+                      to={teamPath(`/athletes/${athlete.id}`)}
+                      className="flex-shrink-0 w-10 h-10 bg-navy-100 rounded-full flex items-center justify-center hover:bg-navy-200 transition-colors"
+                      title={`View ${athlete.first_name} ${athlete.last_name}'s profile`}
+                    >
                       <span className="text-sm font-medium text-navy-700">
                         {athlete.first_name[0]}{athlete.last_name[0]}
                       </span>
-                    </div>
+                    </Link>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center space-x-1 flex-wrap">
                         {effectiveIsCoach ? (
