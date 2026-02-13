@@ -33,8 +33,11 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Landing page at root */}
-          <Route path="/" element={<Landing />} />
+          {/* Root → Bishop Snyder (since domain is bishop-snyder-track.vercel.app) */}
+          {/* When we get a TrackBoard domain, change back to <Landing /> */}
+          <Route path="/" element={<Navigate to="/t/bishop-snyder" replace />} />
+          {/* Landing page still accessible for new team signups */}
+          <Route path="/welcome" element={<Landing />} />
 
           {/* Global auth routes → redirect to landing with message to select a team */}
           <Route path="/login" element={<Navigate to="/?message=Select a team first, then sign in from their page." replace />} />
