@@ -17,7 +17,9 @@ export default function PublicSearch() {
   const { team } = useTeam()
   const teamPath = useTeamPath()
   const { user } = useAuth()
+  const { guestMode } = useTeam()
   const { isFavorite, toggleFavorite } = useFavorites()
+  const showFavorites = user && !guestMode
 
   useEffect(() => {
     async function fetchData() {
@@ -117,7 +119,7 @@ export default function PublicSearch() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </button>
-                  {user && (
+                  {showFavorites && (
                     <button
                       onClick={(e) => { e.stopPropagation(); toggleFavorite(athlete.id) }}
                       className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center flex-shrink-0"

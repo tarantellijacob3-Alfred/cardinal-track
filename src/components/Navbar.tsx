@@ -5,11 +5,13 @@ import { useTeam, useTeamPath } from '../hooks/useTeam'
 
 export default function Navbar() {
   const { user, profile, isCoach, isAdmin, signOut } = useAuth()
-  const { team } = useTeam()
+  const { team, guestMode, activeSeason } = useTeam()
   const teamPath = useTeamPath()
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const effectiveIsCoach = isCoach && !guestMode
 
   const handleSignOut = async () => {
     try {
@@ -47,7 +49,12 @@ export default function Navbar() {
               <img src={logoUrl} alt={teamName} className="w-10 h-10 object-contain" />
               <div className="hidden sm:block">
                 <div className="font-bold text-lg leading-tight text-cardinal-600">{teamName}</div>
-                <div className="text-gold-400 text-xs leading-tight">{schoolName}</div>
+                <div className="text-gold-400 text-xs leading-tight">
+                  {schoolName}
+                  {activeSeason && (
+                    <span className="ml-1 text-gray-400">· {activeSeason.name}</span>
+                  )}
+                </div>
               </div>
             </Link>
           </div>
@@ -67,7 +74,7 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            {isCoach && (
+            {effectiveIsCoach && (
               <Link
                 to={teamPath('/settings')}
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -94,9 +101,14 @@ export default function Navbar() {
               <>
                 <span className="text-sm text-gray-300">
                   {profile?.full_name || user.email}
-                  {isCoach && (
+                  {effectiveIsCoach && (
                     <span className="ml-2 text-xs bg-gold-500 text-navy-900 px-2 py-0.5 rounded-full font-medium">
                       Coach
+                    </span>
+                  )}
+                  {guestMode && (
+                    <span className="ml-2 text-xs bg-amber-500 text-navy-900 px-2 py-0.5 rounded-full font-medium">
+                      Guest
                     </span>
                   )}
                 </span>
@@ -145,7 +157,7 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            {isCoach && (
+            {effectiveIsCoach && (
               <Link
                 to={teamPath('/settings')}
                 className={`block px-3 py-3 rounded-md text-base font-medium min-h-[44px] ${
@@ -164,7 +176,7 @@ export default function Navbar() {
               <div className="space-y-2">
                 <p className="text-sm text-gray-300">
                   {profile?.full_name || user.email}
-                  {isAdmin ? ' (Admin)' : isCoach ? ' (Coach)' : ''}
+                  {isAdmin ? ' (Admin)' : effectiveIsCoach ? ' (Coach)' : guestMode ? ' (Guest)' : ''}
                 </p>
                 <button
                   onClick={() => { handleSignOut(); setMobileMenuOpen(false) }}

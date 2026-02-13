@@ -5,7 +5,12 @@ import { useTeamContext } from '../contexts/TeamContext'
  * Must be used within a TeamProvider (i.e., under /t/:slug/* routes).
  */
 export function useTeam() {
-  const { team, teamId, teamSlug, loading, error } = useTeamContext()
+  const {
+    team, teamId, teamSlug, loading, error,
+    guestMode, setGuestMode,
+    selectedSeasonId, setSelectedSeasonId,
+    seasons, seasonsLoading, activeSeason,
+  } = useTeamContext()
 
   return {
     team,
@@ -13,6 +18,13 @@ export function useTeam() {
     teamSlug,
     loading,
     error,
+    guestMode,
+    setGuestMode,
+    selectedSeasonId,
+    setSelectedSeasonId,
+    seasons,
+    seasonsLoading,
+    activeSeason,
   }
 }
 

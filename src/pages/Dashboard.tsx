@@ -9,20 +9,23 @@ import { supabase } from '../lib/supabase'
 import MeetCard from '../components/MeetCard'
 import SearchBar from '../components/SearchBar'
 import AthleteCard from '../components/AthleteCard'
+import SeasonSelector from '../components/SeasonSelector'
 import type { MeetEntryWithDetails } from '../types/database'
 
 export default function Dashboard() {
   const { user, isCoach, profile } = useAuth()
-  const { meets, loading: meetsLoading } = useMeets()
+  const { team, guestMode, selectedSeasonId } = useTeam()
+  const { meets, loading: meetsLoading } = useMeets(selectedSeasonId)
   const { athletes, loading: athletesLoading } = useAthletes()
-  const { team } = useTeam()
   const teamPath = useTeamPath()
   const { favorites, loading: favsLoading } = useFavorites()
   const [search, setSearch] = useState('')
   const [entries, setEntries] = useState<MeetEntryWithDetails[]>([])
   const [entriesLoading, setEntriesLoading] = useState(false)
 
-  const isParentOrAthlete = user && !isCoach
+  // In guest mode, hide coach tools and favorites
+  const effectiveIsCoach = isCoach && !guestMode
+  const isParentOrAthlete = user && !isCoach && !guestMode
 
   // Fetch meet entries for favorited athletes
   const favoriteAthleteIds = useMemo(
@@ -122,15 +125,22 @@ export default function Dashboard() {
     <div className="space-y-8">
       {/* Hero */}
       <div className="bg-gradient-to-br from-navy-800 to-navy-950 rounded-2xl p-6 sm:p-8 text-white">
-        <h1 className="text-3xl sm:text-4xl font-bold">{teamName}</h1>
-        <p className="text-gold-400 mt-1 text-lg">{schoolLabel} Meet Manager</p>
+        <div className="flex items-start justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold">{teamName}</h1>
+            <p className="text-gold-400 mt-1 text-lg">{schoolLabel} Meet Manager</p>
+          </div>
+          <div className="bg-white/10 rounded-lg px-1 py-1">
+            <SeasonSelector />
+          </div>
+        </div>
         {!user && (
           <div className="mt-4 flex flex-wrap gap-3">
             <Link to={teamPath('/login')} className="btn-secondary">Sign In</Link>
             <Link to={teamPath('/search')} className="btn-ghost text-white hover:bg-navy-700">Search Athletes</Link>
           </div>
         )}
-        {user && isCoach && (
+        {user && effectiveIsCoach && (
           <div className="mt-4 flex flex-wrap gap-3">
             <Link to={teamPath('/meets')} className="btn-secondary">Manage Meets</Link>
             <Link to={teamPath('/roster')} className="btn-ghost text-white hover:bg-navy-700">View Roster</Link>
@@ -138,7 +148,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      {user && !isCoach && profile?.role === 'coach' && !profile?.approved && (
+      {user && !isCoach && profile?.role === 'coach' && !profile?.approved && !guestMode && (
         <div className="card border border-gold-200 bg-gold-50 text-navy-900">
           <p className="font-medium">Coach approval pending</p>
           <p className="text-sm text-gray-700 mt-1">
@@ -306,7 +316,7 @@ export default function Dashboard() {
         ) : upcomingMeets.length === 0 ? (
           <div className="card text-center py-8">
             <p className="text-gray-400">No upcoming meets scheduled</p>
-            {isCoach && (
+            {effectiveIsCoach && (
               <Link to={teamPath('/meets')} className="btn-primary inline-block mt-3 text-sm">Create Meet</Link>
             )}
           </div>

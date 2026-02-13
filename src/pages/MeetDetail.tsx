@@ -328,7 +328,8 @@ export default function MeetDetail() {
   const [viewMode, setViewMode] = useState<ViewMode>('card')
   const [showCopyModal, setShowCopyModal] = useState(false)
   const [genderFilter, setGenderFilter] = useState<'all' | 'Boys' | 'Girls'>('all')
-  const { team } = useTeam()
+  const { team, guestMode } = useTeam()
+  const effectiveIsCoach = isCoach && !guestMode
 
   // TFRRS state
   const [tfrrsLinks, setTfrrsLinks] = useState<TFRRSMeetLink[]>([])
@@ -540,7 +541,7 @@ export default function MeetDetail() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {isCoach && (
+              {effectiveIsCoach && (
                 <button
                   onClick={() => setShowCopyModal(true)}
                   className="btn-ghost text-white hover:bg-navy-700 text-sm min-h-[44px]"
@@ -592,13 +593,13 @@ export default function MeetDetail() {
           )}
 
           {/* TFRRS Results Links */}
-          {(tfrrsLinks.length > 0 || isCoach) && (
+          {(tfrrsLinks.length > 0 || effectiveIsCoach) && (
             <div className="mt-3 border-t border-navy-700 pt-3">
               <div className="flex items-center flex-wrap gap-2">
                 {tfrrsLinks.map(link => (
                   <div key={link.id} className="flex items-center gap-1">
                     <TFRRSLink url={link.tfrrs_url} variant="button" />
-                    {isCoach && (
+                    {effectiveIsCoach && (
                       <button
                         onClick={() => handleRemoveTFRRS(link.id)}
                         className="text-red-300 hover:text-red-100 p-1"
@@ -612,7 +613,7 @@ export default function MeetDetail() {
                   </div>
                 ))}
 
-                {isCoach && !showTFRRSInput && (
+                {effectiveIsCoach && !showTFRRSInput && (
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setShowTFRRSInput(true)}
@@ -632,7 +633,7 @@ export default function MeetDetail() {
                 )}
               </div>
 
-              {isCoach && showTFRRSInput && (
+              {effectiveIsCoach && showTFRRSInput && (
                 <div className="mt-2 flex items-center gap-2">
                   <input
                     type="url"
@@ -662,7 +663,7 @@ export default function MeetDetail() {
       </div>
 
       {/* Coach settings bar */}
-      {isCoach && (
+      {effectiveIsCoach && (
         <div className="no-print flex flex-wrap items-center justify-between gap-3 bg-gold-50 rounded-lg p-3 border border-gold-200">
           <label className="flex items-center space-x-2 text-sm min-h-[44px]">
             <input
@@ -709,7 +710,7 @@ export default function MeetDetail() {
       )}
 
       {/* Non-coach view toggle (read-only grid still useful) */}
-      {!isCoach && (
+      {!effectiveIsCoach && (
         <div className="no-print flex justify-end">
           <div className="flex rounded-lg overflow-hidden border border-gray-300">
             <button
@@ -799,7 +800,7 @@ export default function MeetDetail() {
               key={event.id}
               event={event}
               entries={getEntriesByEvent(event.id)}
-              isCoach={isCoach}
+              isCoach={effectiveIsCoach}
               onAssign={() => setAssigningEvent(event)}
               onRemoveEntry={handleRemoveEntry}
             />
@@ -814,7 +815,7 @@ export default function MeetDetail() {
             athletes={filteredAthletes}
             events={events}
             entries={entries}
-            isCoach={isCoach}
+            isCoach={effectiveIsCoach}
             relaysCountTowardLimit={relaysCountTowardLimit}
             onToggle={handleGridToggle}
           />

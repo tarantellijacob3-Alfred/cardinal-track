@@ -41,6 +41,11 @@ export interface Database {
         Insert: TFRRSMeetLinkInsert
         Update: TFRRSMeetLinkUpdate
       }
+      seasons: {
+        Row: Season
+        Insert: SeasonInsert
+        Update: SeasonUpdate
+      }
     }
   }
 }
@@ -107,12 +112,14 @@ export interface Meet {
   level: 'JV' | 'Varsity' | 'Both'
   notes: string | null
   team_id: string
+  season_id: string | null
   created_at: string
 }
 
-export type MeetInsert = Omit<Meet, 'id' | 'created_at'> & {
+export type MeetInsert = Omit<Meet, 'id' | 'created_at' | 'season_id'> & {
   id?: string
   created_at?: string
+  season_id?: string | null
 }
 
 export type MeetUpdate = Partial<MeetInsert>
@@ -191,3 +198,21 @@ export interface MeetWithEntryCount extends Meet {
 }
 
 export type EventCategory = TrackEvent['category']
+
+// Seasons
+export interface Season {
+  id: string
+  team_id: string
+  name: string
+  start_date: string
+  end_date: string | null
+  is_active: boolean
+  created_at: string
+}
+
+export type SeasonInsert = Omit<Season, 'id' | 'created_at'> & {
+  id?: string
+  created_at?: string
+}
+
+export type SeasonUpdate = Partial<SeasonInsert>

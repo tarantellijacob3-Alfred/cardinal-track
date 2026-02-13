@@ -1,12 +1,17 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useMeets } from '../hooks/useMeets'
+import { useTeam } from '../hooks/useTeam'
 import MeetCard from '../components/MeetCard'
+import SeasonSelector from '../components/SeasonSelector'
 
 export default function Meets() {
   const { isCoach } = useAuth()
-  const { meets, loading, addMeet, deleteMeet } = useMeets()
+  const { guestMode, selectedSeasonId, activeSeason } = useTeam()
+  const { meets, loading, addMeet, deleteMeet } = useMeets(selectedSeasonId)
   const [showAddForm, setShowAddForm] = useState(false)
+
+  const effectiveIsCoach = isCoach && !guestMode
 
   // Form state
   const [name, setName] = useState('')
@@ -23,6 +28,8 @@ export default function Meets() {
       location: location.trim() || null,
       level,
       notes: notes.trim() || null,
+      // Auto-assign to active season
+      season_id: activeSeason?.id || null,
     })
     setName('')
     setDate('')
@@ -40,28 +47,36 @@ export default function Meets() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-navy-900">Meets</h1>
           <p className="text-gray-500">{meets.length} total</p>
         </div>
-        {isCoach && (
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="btn-primary flex items-center space-x-2 min-h-[44px]"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>New Meet</span>
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          <SeasonSelector />
+          {effectiveIsCoach && (
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="btn-primary flex items-center space-x-2 min-h-[44px]"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>New Meet</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Add Form */}
-      {showAddForm && isCoach && (
+      {showAddForm && effectiveIsCoach && (
         <form onSubmit={handleAdd} className="card space-y-4">
           <h3 className="font-semibold text-navy-900">Create New Meet</h3>
+          {activeSeason && (
+            <p className="text-xs text-gray-500">
+              This meet will be added to the <span className="font-medium text-navy-700">{activeSeason.name}</span> season.
+            </p>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Meet Name</label>
@@ -132,7 +147,7 @@ export default function Meets() {
       ) : meets.length === 0 ? (
         <div className="card text-center py-12">
           <p className="text-gray-400">No meets yet</p>
-          {isCoach && (
+          {effectiveIsCoach && (
             <button onClick={() => setShowAddForm(true)} className="btn-primary mt-3 text-sm min-h-[44px]">
               Create your first meet
             </button>
@@ -143,7 +158,7 @@ export default function Meets() {
           {meets.map(meet => (
             <div key={meet.id} className="relative group">
               <MeetCard meet={meet} />
-              {isCoach && (
+              {effectiveIsCoach && (
                 <button
                   onClick={(e) => { e.preventDefault(); handleDelete(meet.id) }}
                   className="absolute bottom-3 right-3 p-2 text-cardinal-500 hover:text-cardinal-700 hover:bg-cardinal-50 rounded-lg transition-all min-h-[44px] min-w-[44px] flex items-center justify-center"

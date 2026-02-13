@@ -1,22 +1,34 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import type { Profile } from '../types/database'
+import { useTeam } from '../hooks/useTeam'
+import { useSeasons } from '../hooks/useSeasons'
+import SeasonModal from '../components/SeasonModal'
+import type { Profile, Season } from '../types/database'
 
 export default function Settings() {
   const { isCoach, isAdmin, profile: currentProfile } = useAuth()
+  const { guestMode } = useTeam()
+  const { seasons, loading: seasonsLoading, addSeason, updateSeason, deleteSeason, setActiveSeason, refetch: refetchSeasons } = useSeasons()
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
+  // Season modal state
+  const [showSeasonModal, setShowSeasonModal] = useState(false)
+  const [editingSeason, setEditingSeason] = useState<Season | null>(null)
+  const [confirmDeleteSeason, setConfirmDeleteSeason] = useState<string | null>(null)
+
+  const effectiveIsCoach = isCoach && !guestMode
+
   useEffect(() => {
-    if (isCoach) {
+    if (effectiveIsCoach) {
       fetchProfiles()
     } else {
       setLoading(false)
     }
-  }, [isCoach])
+  }, [effectiveIsCoach])
 
   async function fetchProfiles() {
     setLoading(true)
@@ -39,7 +51,6 @@ export default function Settings() {
     if (error) {
       alert('Failed to approve coach: ' + error.message)
     } else {
-      // Optimistic update: move from pending to coaches
       setProfiles(prev => prev.map(p =>
         p.id === profileId ? { ...p, role: 'coach' as const, approved: true } : p
       ))
@@ -58,7 +69,6 @@ export default function Settings() {
     if (error) {
       alert('Failed to disapprove: ' + error.message)
     } else {
-      // Optimistic update: move from pending to parents
       setProfiles(prev => prev.map(p =>
         p.id === profileId ? { ...p, role: 'parent' as const, approved: false } : p
       ))
@@ -77,7 +87,6 @@ export default function Settings() {
     if (error) {
       alert('Failed to demote coach: ' + error.message)
     } else {
-      // Optimistic update: move from coaches to parents
       setProfiles(prev => prev.map(p =>
         p.id === profileId ? { ...p, role: 'parent' as const, approved: false } : p
       ))
@@ -120,8 +129,27 @@ export default function Settings() {
     setUpdatingId(null)
   }
 
+  // Season handlers
+  async function handleSaveSeason(data: { name: string; start_date: string; end_date: string | null; is_active: boolean }) {
+    if (editingSeason) {
+      await updateSeason(editingSeason.id, data)
+    } else {
+      await addSeason(data)
+    }
+    setEditingSeason(null)
+  }
+
+  async function handleDeleteSeason(id: string) {
+    await deleteSeason(id)
+    setConfirmDeleteSeason(null)
+  }
+
+  async function handleSetActive(id: string) {
+    await setActiveSeason(id)
+  }
+
   // Parent/athlete view — just show own account details
-  if (!isCoach) {
+  if (!effectiveIsCoach) {
     return (
       <div className="space-y-8">
         <div>
@@ -172,8 +200,113 @@ export default function Settings() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-navy-900">Settings</h1>
-        <p className="text-gray-600 mt-1">Manage user accounts and permissions</p>
+        <p className="text-gray-600 mt-1">Manage user accounts, permissions, and seasons</p>
       </div>
+
+      {/* ═══ Season Management ═══ */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-navy-900">
+            Season Management ({seasons.length})
+          </h2>
+          <button
+            onClick={() => { setEditingSeason(null); setShowSeasonModal(true) }}
+            className="btn-primary text-sm flex items-center space-x-1 min-h-[44px]"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>New Season</span>
+          </button>
+        </div>
+
+        {seasonsLoading ? (
+          <div className="flex justify-center py-6">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-navy-800" />
+          </div>
+        ) : seasons.length === 0 ? (
+          <div className="card text-center py-8">
+            <p className="text-gray-400">No seasons created yet</p>
+            <button
+              onClick={() => { setEditingSeason(null); setShowSeasonModal(true) }}
+              className="btn-primary mt-3 text-sm min-h-[44px]"
+            >
+              Create your first season
+            </button>
+          </div>
+        ) : (
+          <div className="card divide-y divide-gray-100">
+            {seasons.map(season => (
+              <div key={season.id} className="py-3 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-navy-900">{season.name}</p>
+                    {season.is_active && (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    {new Date(season.start_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {season.end_date && (
+                      <> — {new Date(season.end_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</>
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {!season.is_active && (
+                    <button
+                      onClick={() => handleSetActive(season.id)}
+                      className="text-xs px-2 py-0.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
+                    >
+                      Set Active
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setEditingSeason(season); setShowSeasonModal(true) }}
+                    className="text-xs px-2 py-0.5 bg-navy-50 text-navy-600 rounded-lg hover:bg-navy-100 transition-colors"
+                  >
+                    Edit
+                  </button>
+                  {confirmDeleteSeason === season.id ? (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleDeleteSeason(season.id)}
+                        className="text-xs px-2 py-0.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteSeason(null)}
+                        className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDeleteSeason(season.id)}
+                      className="text-xs px-2 py-0.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Season Modal */}
+      {showSeasonModal && (
+        <SeasonModal
+          season={editingSeason}
+          onSave={handleSaveSeason}
+          onClose={() => { setShowSeasonModal(false); setEditingSeason(null) }}
+        />
+      )}
 
       {/* Pending Coach Requests */}
       <div>

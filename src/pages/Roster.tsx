@@ -2,9 +2,11 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useAthletes } from '../hooks/useAthletes'
-import { useTeamPath } from '../hooks/useTeam'
+import { useTeam, useTeamPath } from '../hooks/useTeam'
 import SearchBar from '../components/SearchBar'
 import BulkImportModal from '../components/BulkImportModal'
+import SeasonSelector from '../components/SeasonSelector'
+import AthleteSeasonStats from '../components/AthleteSeasonStats'
 import type { Athlete, AthleteInsert } from '../types/database'
 
 type LevelFilter = 'all' | 'JV' | 'Varsity'
@@ -97,7 +99,9 @@ function InlineEditCell({ value, onSave, type = 'text', options = [], className 
 export default function Roster() {
   const { isCoach } = useAuth()
   const { athletes, loading, addAthlete, bulkAddAthletes, updateAthlete, deleteAthlete } = useAthletes()
+  const { guestMode, selectedSeasonId } = useTeam()
   const teamPath = useTeamPath()
+  const effectiveIsCoach = isCoach && !guestMode
   const [search, setSearch] = useState('')
   const [levelFilter, setLevelFilter] = useState<LevelFilter>('all')
   const [genderFilter, setGenderFilter] = useState<GenderFilter>('all')
@@ -200,33 +204,36 @@ export default function Roster() {
           <h1 className="text-2xl font-bold text-navy-900">Roster</h1>
           <p className="text-gray-500">{filteredAthletes.length} athletes</p>
         </div>
-        {isCoach && (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setShowImportModal(true)}
-              className="btn-secondary flex items-center space-x-2 text-sm min-h-[44px]"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-              <span>Import Athletes</span>
-            </button>
-            <button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="btn-primary flex items-center space-x-2 text-sm min-h-[44px]"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span>Add Athlete</span>
-            </button>
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2 items-center">
+          <SeasonSelector />
+          {effectiveIsCoach && (
+            <>
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="btn-secondary flex items-center space-x-2 text-sm min-h-[44px]"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <span>Import Athletes</span>
+              </button>
+              <button
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="btn-primary flex items-center space-x-2 text-sm min-h-[44px]"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Add Athlete</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Add Form */}
-      {showAddForm && isCoach && (
+      {showAddForm && effectiveIsCoach && (
         <form onSubmit={handleAdd} className="card space-y-4">
           <h3 className="font-semibold text-navy-900">Add New Athlete</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -368,7 +375,7 @@ export default function Roster() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center space-x-1 flex-wrap">
-                        {isCoach ? (
+                        {effectiveIsCoach ? (
                           <>
                             <InlineEditCell
                               value={athlete.last_name}
@@ -389,7 +396,7 @@ export default function Roster() {
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        {isCoach ? (
+                        {effectiveIsCoach ? (
                           <span className="text-xs text-gray-500">
                             Grade{' '}
                             <InlineEditCell
@@ -420,10 +427,13 @@ export default function Roster() {
                           {athlete.gender}
                         </span>
                       </div>
+                      {selectedSeasonId && (
+                        <AthleteSeasonStats athleteId={athlete.id} />
+                      )}
                     </div>
                   </div>
 
-                  {isCoach && (
+                  {effectiveIsCoach && (
                     <div className="flex items-center flex-shrink-0">
                       <button
                         onClick={() => setSettingsAthlete(athlete)}

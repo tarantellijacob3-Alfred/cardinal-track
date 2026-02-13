@@ -7,7 +7,9 @@ import { useFavorites } from '../hooks/useFavorites'
 import { supabase } from '../lib/supabase'
 import { searchTFRRS, isValidTFRRSUrl } from '../lib/tfrrs'
 import TFRRSLink from '../components/TFRRSLink'
-import { useState, useEffect } from 'react'
+import SeasonSelector from '../components/SeasonSelector'
+import AthleteSeasonStats from '../components/AthleteSeasonStats'
+import { useState, useEffect, useMemo } from 'react'
 import type { Meet } from '../types/database'
 
 export default function AthleteDetail() {
@@ -15,7 +17,7 @@ export default function AthleteDetail() {
   const { athlete, loading: athleteLoading } = useAthlete(id)
   const { updateAthlete } = useAthletes()
   const { entries, loading: entriesLoading } = useAthleteEntries(id)
-  const { team } = useTeam()
+  const { team, guestMode, selectedSeasonId } = useTeam()
   const teamPath = useTeamPath()
   const { user, isCoach } = useAuth()
   const { isFavorite, toggleFavorite } = useFavorites()
@@ -23,6 +25,9 @@ export default function AthleteDetail() {
   const [showTFRRSInput, setShowTFRRSInput] = useState(false)
   const [tfrrsInput, setTfrrsInput] = useState('')
   const [tfrrsLoading, setTfrrsLoading] = useState(false)
+
+  const effectiveIsCoach = isCoach && !guestMode
+  const showFavorites = user && !guestMode
 
   useEffect(() => {
     async function fetchMeets() {
@@ -38,6 +43,15 @@ export default function AthleteDetail() {
   }, [team?.id])
 
   const loading = athleteLoading || entriesLoading
+
+  // Filter entries by selected season
+  const filteredEntries = useMemo(() => {
+    if (!selectedSeasonId) return entries
+    const seasonMeetIds = new Set(
+      meets.filter(m => m.season_id === selectedSeasonId).map(m => m.id)
+    )
+    return entries.filter(e => seasonMeetIds.has(e.meet_id))
+  }, [entries, selectedSeasonId, meets])
 
   if (loading) {
     return (
@@ -57,8 +71,8 @@ export default function AthleteDetail() {
   }
 
   // Group entries by meet
-  const entriesByMeet: Record<string, typeof entries> = {}
-  for (const entry of entries) {
+  const entriesByMeet: Record<string, typeof filteredEntries> = {}
+  for (const entry of filteredEntries) {
     if (!entriesByMeet[entry.meet_id]) {
       entriesByMeet[entry.meet_id] = []
     }
@@ -67,9 +81,12 @@ export default function AthleteDetail() {
 
   return (
     <div className="space-y-6">
-      <Link to={teamPath('/roster')} className="text-sm text-navy-600 hover:text-navy-800 font-medium mb-2 inline-flex items-center min-h-[44px]">
-        ← Back to Roster
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link to={teamPath('/roster')} className="text-sm text-navy-600 hover:text-navy-800 font-medium mb-2 inline-flex items-center min-h-[44px]">
+          ← Back to Roster
+        </Link>
+        <SeasonSelector />
+      </div>
 
       {/* Athlete header */}
       <div className="card">
@@ -96,11 +113,17 @@ export default function AthleteDetail() {
                   <TFRRSLink url={athlete.tfrrs_url} />
                 )}
               </div>
+              {/* Season stats */}
+              {selectedSeasonId && id && (
+                <div className="mt-2">
+                  <AthleteSeasonStats athleteId={id} />
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Favorite button */}
-          {user && (
+          {/* Favorite button — hidden in guest mode */}
+          {showFavorites && (
             <button
               onClick={() => toggleFavorite(athlete.id)}
               className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors"
@@ -120,7 +143,7 @@ export default function AthleteDetail() {
         </div>
 
         {/* TFRRS linking (coach only) */}
-        {isCoach && (
+        {effectiveIsCoach && (
           <div className="mt-4 pt-4 border-t border-gray-100">
             {athlete.tfrrs_url ? (
               <div className="flex items-center justify-between">
@@ -203,7 +226,7 @@ export default function AthleteDetail() {
           <p className="text-sm text-gray-500">Meets</p>
         </div>
         <div className="card text-center">
-          <p className="text-3xl font-bold text-navy-800">{entries.length}</p>
+          <p className="text-3xl font-bold text-navy-800">{filteredEntries.length}</p>
           <p className="text-sm text-gray-500">Total Entries</p>
         </div>
       </div>

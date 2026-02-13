@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import type { Meet, MeetInsert, MeetUpdate } from '../types/database'
 import { useTeam } from './useTeam'
 
-export function useMeets() {
+export function useMeets(seasonFilter?: string | null) {
   const [meets, setMeets] = useState<Meet[]>([])
   const [loading, setLoading] = useState(true)
   const { teamId } = useTeam()
@@ -16,17 +16,24 @@ export function useMeets() {
     }
 
     setLoading(true)
-    const { data, error } = await supabase
+    let query = supabase
       .from('meets')
       .select('*')
       .eq('team_id', teamId)
       .order('date', { ascending: false })
 
+    // If seasonFilter is provided (non-empty string), filter by it
+    if (seasonFilter) {
+      query = query.eq('season_id', seasonFilter)
+    }
+
+    const { data, error } = await query
+
     if (!error && data) {
       setMeets(data as Meet[])
     }
     setLoading(false)
-  }, [teamId])
+  }, [teamId, seasonFilter])
 
   useEffect(() => {
     fetch()
