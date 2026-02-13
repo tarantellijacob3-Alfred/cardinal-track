@@ -49,7 +49,7 @@ export default function Navbar() {
           <div className="flex items-center space-x-3">
             <Link to={teamPath('/')} className="flex items-center space-x-3">
               {logoUrl ? (
-                <img src={logoUrl} alt={teamName} className="w-10 h-10 object-contain" />
+                <img src={logoUrl} alt={teamName} className="w-10 h-10 object-contain rounded-lg bg-white/90 p-0.5" />
               ) : (
                 <div
                   className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm"

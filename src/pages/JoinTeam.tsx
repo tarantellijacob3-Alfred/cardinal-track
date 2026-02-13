@@ -122,7 +122,7 @@ export default function JoinTeam() {
                       style={{ backgroundColor: team.primary_color }}
                     >
                       {team.logo_url ? (
-                        <img src={team.logo_url} alt={team.name} className="w-12 h-12 rounded-full object-contain" />
+                        <img src={team.logo_url} alt={team.name} className="w-12 h-12 rounded-full object-contain bg-white/90 p-0.5" />
                       ) : (
                         team.name.charAt(0).toUpperCase()
                       )}

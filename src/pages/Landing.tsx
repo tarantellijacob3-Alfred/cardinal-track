@@ -209,7 +209,7 @@ export default function Landing() {
                       }}
                     >
                       {team.logo_url ? (
-                        <img src={team.logo_url} alt={team.name} className="w-10 h-10 object-contain" />
+                        <img src={team.logo_url} alt={team.name} className="w-10 h-10 object-contain rounded-lg bg-white/90 p-0.5" />
                       ) : (
                         <span className="text-white font-bold text-lg">
                           {team.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
