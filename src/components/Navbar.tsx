@@ -17,7 +17,7 @@ export default function Navbar() {
     } catch (e) {
       console.error('Sign out error:', e)
     } finally {
-      navigate('/login')
+      navigate(teamPath('/login'))
       window.location.reload()
     }
   }
@@ -25,17 +25,16 @@ export default function Navbar() {
   const isActive = (path: string) => location.pathname === path
 
   const navLinks = [
-    { path: teamPath('/'), label: 'Home' },
+    { path: teamPath('/'), label: 'Dashboard' },
     { path: teamPath('/roster'), label: 'Roster' },
     { path: teamPath('/meets'), label: 'Meets' },
     { path: teamPath('/events'), label: 'Events' },
     { path: teamPath('/search'), label: 'Search' },
-    ...(user && !isCoach ? [{ path: teamPath('/favorites'), label: '⭐ Favorites' }] : []),
   ]
 
   // Use team logo or fallback
   const logoUrl = team?.logo_url || '/cardinal-logo.jpg'
-  const teamName = team?.name || 'Cardinal Track'
+  const teamName = team?.name || 'Track Team'
   const schoolName = team?.school_name || 'Track & Field'
 
   return (
@@ -43,13 +42,15 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to={teamPath('/')} className="flex items-center space-x-3">
-            <img src={logoUrl} alt={teamName} className="w-10 h-10 object-contain" />
-            <div className="hidden sm:block">
-              <div className="font-bold text-lg leading-tight text-cardinal-600">{teamName}</div>
-              <div className="text-gold-400 text-xs leading-tight">{schoolName}</div>
-            </div>
-          </Link>
+          <div className="flex items-center space-x-3">
+            <Link to={teamPath('/')} className="flex items-center space-x-3">
+              <img src={logoUrl} alt={teamName} className="w-10 h-10 object-contain" />
+              <div className="hidden sm:block">
+                <div className="font-bold text-lg leading-tight text-cardinal-600">{teamName}</div>
+                <div className="text-gold-400 text-xs leading-tight">{schoolName}</div>
+              </div>
+            </Link>
+          </div>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center space-x-1">
@@ -82,6 +83,13 @@ export default function Navbar() {
 
           {/* Auth buttons */}
           <div className="hidden md:flex items-center space-x-3">
+            <Link
+              to="/"
+              className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+              title="Back to TrackBoard directory"
+            >
+              ← TrackBoard
+            </Link>
             {user ? (
               <>
                 <span className="text-sm text-gray-300">
@@ -97,7 +105,7 @@ export default function Navbar() {
                 </button>
               </>
             ) : (
-              <Link to="/login" className="btn-secondary text-sm">
+              <Link to={teamPath('/login')} className="btn-secondary text-sm">
                 Sign In
               </Link>
             )}
@@ -167,13 +175,20 @@ export default function Navbar() {
               </div>
             ) : (
               <Link
-                to="/login"
+                to={teamPath('/login')}
                 className="block btn-secondary text-center text-sm min-h-[44px] flex items-center justify-center"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Sign In
               </Link>
             )}
+            <Link
+              to="/"
+              className="block mt-2 text-center text-sm text-gray-500 hover:text-gray-300 py-2"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              ← Back to TrackBoard
+            </Link>
           </div>
         </div>
       )}

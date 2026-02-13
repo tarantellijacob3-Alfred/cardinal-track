@@ -1,9 +1,116 @@
 # V2 Build Log — Multi-Team Foundation
 
-**Built:** 2025-07-11 (Phases 1/2/4/6), 2025-07-12 (Phases 5/7/8)  
-**Phases Completed:** 1 (Foundation), 2 (URL Routing), 4 (CSV Upload), 5 (Parent Signup + Favorites), 6 (Mobile Polish), 7 (Team Onboarding + Stripe), 8 (TFRRS Auto-Linking)  
+**Built:** 2025-07-11 (Phases 1/2/4/6), 2025-07-12 (Phases 5/7/8), 2025-07-13 (UX Overhaul)  
+**Phases Completed:** 1 (Foundation), 2 (URL Routing), 4 (CSV Upload), 5 (Parent Signup + Favorites), 6 (Mobile Polish), 7 (Team Onboarding + Stripe), 8 (TFRRS Auto-Linking), **UX Overhaul** (TrackBoard branding, team-scoped auth, favorites on dashboard)  
 **Build Status:** ✅ Compiles & builds successfully with zero errors  
 **Deployment:** LOCAL ONLY — NOT deployed to Vercel  
+
+---
+
+## UX Overhaul (2025-07-13): TrackBoard Platform Brand, Team-Scoped Auth, Favorites on Dashboard
+
+### 1. Landing Page → "TrackBoard" Platform Brand + Team Directory
+
+**File: `src/pages/Landing.tsx` — Complete rewrite**
+
+- Rebranded from "Cardinal Track" to **"TrackBoard"** — a platform for track teams, not a specific team
+- NO references to Cardinal Track or Bishop Snyder on the landing page
+- **Team Directory**: Fetches all active teams from Supabase, displays as cards with:
+  - Team name, school name, color gradient swatch
+  - Logo (or initials fallback)
+  - Link to `/t/[slug]`
+- **"Find Your Team"** search/filter on the directory section
+- Hero section: "Your Track Team, Organized" — explains what TrackBoard is
+- CTAs: "Start Your Team — Free" (→ /onboard), "Find Your Team" (→ #directory)
+- Parent/athlete CTA links to directory (team-specific signup)
+- Flash message support via `?message=` URL parameter (for redirects from /login etc.)
+- Updated footer: "TrackBoard — Track & Field Team Management Platform"
+
+**File: `index.html`**
+- Title changed to "TrackBoard | Track & Field Team Manager"
+- Meta description updated
+
+### 2. Team-Scoped Sign In / Register / Parent Signup
+
+**New files:**
+| File | Purpose |
+|------|---------|
+| `src/pages/TeamLogin.tsx` | Team-scoped login at `/t/:slug/login`. Shows team branding (logo, name, colors). Redirects to team dashboard after login. Links to team-scoped register and parent-signup. |
+| `src/pages/TeamRegister.tsx` | Team-scoped coach registration at `/t/:slug/register`. Sets `profile.team_id` to the current team on registration. Shows team name in UI. Pending approval flow preserved. |
+| `src/pages/TeamParentSignup.tsx` | Team-scoped parent signup at `/t/:slug/parent-signup`. Auto-assigns to current team (no team dropdown needed). Auto-approved as parent role. |
+
+**Route changes (`src/App.tsx`):**
+- `/login` → redirects to `/?message=Select a team first, then sign in from their page.`
+- `/register` → redirects to `/?message=Select a team first, then register from their page.`
+- `/parent-signup` → redirects to `/?message=Select a team first, then sign up from their page.`
+- `/t/:slug/login` → `TeamLogin` (wrapped in `TeamProvider`, no Layout)
+- `/t/:slug/register` → `TeamRegister` (wrapped in `TeamProvider`, no Layout)
+- `/t/:slug/parent-signup` → `TeamParentSignup` (wrapped in `TeamProvider`, no Layout)
+- `/onboard` → kept global (creating a new team isn't team-scoped)
+- Old Login.tsx, Register.tsx, ParentSignup.tsx kept as files but no longer imported
+
+### 3. Favorites Integrated on Dashboard
+
+**File: `src/pages/Dashboard.tsx` — Major update**
+
+- When a logged-in parent/athlete has favorited athletes:
+  - Shows **"⭐ My Athletes"** section at the TOP of the dashboard (before search, stats, meets)
+  - Displays each favorited athlete as a card with: name, level, grade, gender
+  - Shows upcoming meets & events for each favorited athlete inline
+  - "+ Add more" link to search page
+- If no favorites yet: friendly prompt card — "⭐ Favorite athletes to see their updates here" with "Search Athletes" CTA
+- Section only visible to non-coach users (parents/athletes)
+- Coaches see same dashboard as before (no favorites section)
+- Existing dashboard content (search, stats, upcoming/recent meets) preserved below
+
+### 4. Navigation Updates
+
+**File: `src/components/Navbar.tsx` — Updated**
+
+- Team branding shown on team pages (logo, name, school — from team record)
+- All auth links team-scoped: "Sign In" → `/t/:slug/login`
+- Sign Out redirects to team-scoped login page
+- Removed "⭐ Favorites" nav link (favorites are now on dashboard)
+- Added **"← TrackBoard"** link in both desktop and mobile nav to return to landing/directory
+- "Home" nav link renamed to "Dashboard"
+
+**File: `src/components/Layout.tsx` — Updated**
+- Footer: "{team.name} — {school_name} · Powered by TrackBoard" instead of "Cardinal Track"
+
+### 5. Route Structure Summary
+
+```
+/                              → Landing (TrackBoard platform, team directory)
+/login                         → Redirect to / with message
+/register                      → Redirect to / with message
+/parent-signup                 → Redirect to / with message
+/onboard                       → Team onboarding (global)
+/join                          → Join team (global)
+/t/:slug/login                 → Team-scoped login (full page, TeamProvider, no Layout)
+/t/:slug/register              → Team-scoped coach registration (full page)
+/t/:slug/parent-signup         → Team-scoped parent signup (full page)
+/t/:slug                       → Team dashboard (with favorites for parents)
+/t/:slug/roster                → Roster
+/t/:slug/meets                 → Meets
+/t/:slug/meets/:id             → Meet detail
+/t/:slug/meets/:id/report      → Meet report
+/t/:slug/events                → Events
+/t/:slug/athletes/:id          → Athlete detail
+/t/:slug/search                → Public search
+/t/:slug/settings              → Settings
+/t/:slug/favorites             → My Favorites (secondary, still accessible)
+```
+
+### What Was NOT Changed
+- Database/migrations — zero changes
+- AuthContext.tsx — unchanged (isCoachForTeam already exists)
+- useFavorites.ts — unchanged (just integrated into Dashboard)
+- MyFavorites.tsx — preserved as secondary page
+- All other pages (Roster, Meets, MeetDetail, etc.) — unchanged
+- All backward-compatible redirects from old URLs — preserved
+- Bishop Snyder `is_grandfathered: true` — untouched
+
+
 
 ---
 
