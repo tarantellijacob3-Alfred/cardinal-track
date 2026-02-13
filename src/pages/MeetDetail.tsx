@@ -10,7 +10,7 @@ import EventCard from '../components/EventCard'
 import AthleteAssignModal from '../components/AthleteAssignModal'
 import PrintMeetSheet from '../components/PrintMeetSheet'
 import TFRRSLink from '../components/TFRRSLink'
-import { searchTFRRSMeet, isValidTFRRSUrl } from '../lib/tfrrs'
+import { searchTFRRSMeet, isValidResultsUrl } from '../lib/tfrrs'
 import type { TrackEvent, Meet, MeetEntryWithDetails, TFRRSMeetLink } from '../types/database'
 import { supabase } from '../lib/supabase'
 
@@ -352,8 +352,8 @@ export default function MeetDetail() {
 
   const handleAddTFRRS = async () => {
     if (!id || !tfrrsInput) return
-    if (!isValidTFRRSUrl(tfrrsInput)) {
-      alert('Please enter a valid TFRRS URL (tfrrs.org)')
+    if (!isValidResultsUrl(tfrrsInput)) {
+      alert('Please enter a valid URL (e.g. https://florida.tfrrs.org/...)')
       return
     }
     setTfrrsLoading(true)
@@ -592,7 +592,7 @@ export default function MeetDetail() {
             <p className="mt-3 text-sm text-gray-300 border-t border-navy-700 pt-3">{meet.notes}</p>
           )}
 
-          {/* TFRRS Results Links */}
+          {/* Results Links */}
           {(tfrrsLinks.length > 0 || effectiveIsCoach) && (
             <div className="mt-3 border-t border-navy-700 pt-3">
               <div className="flex items-center flex-wrap gap-2">
@@ -603,7 +603,7 @@ export default function MeetDetail() {
                       <button
                         onClick={() => handleRemoveTFRRS(link.id)}
                         className="text-red-300 hover:text-red-100 p-1"
-                        title="Remove TFRRS link"
+                        title="Remove results link"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -619,7 +619,7 @@ export default function MeetDetail() {
                       onClick={() => setShowTFRRSInput(true)}
                       className="text-sm text-blue-300 hover:text-blue-100 font-medium"
                     >
-                      + Link TFRRS Results
+                      + Add Results Link
                     </button>
                     <a
                       href={searchTFRRSMeet(meet.name, meet.date)}
@@ -627,7 +627,7 @@ export default function MeetDetail() {
                       rel="noopener noreferrer"
                       className="text-sm text-gray-400 hover:text-gray-200"
                     >
-                      Search TFRRS
+                      Search FL TFRRS
                     </a>
                   </div>
                 )}
@@ -639,7 +639,7 @@ export default function MeetDetail() {
                     type="url"
                     value={tfrrsInput}
                     onChange={e => setTfrrsInput(e.target.value)}
-                    placeholder="Paste TFRRS results URL..."
+                    placeholder="Paste any results URL (TFRRS, MileSplit, etc.)..."
                     className="flex-1 bg-navy-700 border border-navy-600 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-400 focus:ring-1 focus:ring-gold-400 focus:border-gold-400"
                   />
                   <button

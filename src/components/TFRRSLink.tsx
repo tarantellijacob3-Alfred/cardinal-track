@@ -37,12 +37,12 @@ export default function TFRRSLink({ url, className = '', variant = 'badge' }: TF
       target="_blank"
       rel="noopener noreferrer"
       className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium hover:bg-blue-200 transition-colors ${className}`}
-      title={`View on TFRRS: ${url}`}
+      title={`View results: ${url}`}
     >
       <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
       </svg>
-      <span>TFRRS</span>
+      <span>{label}</span>
     </a>
   )
 }
