@@ -113,7 +113,7 @@ export default function PublicSearch() {
                           {athlete.level} {athlete.gender}
                           {athlete.grade ? ` · Grade ${athlete.grade}` : ''}
                           {' · '}
-                          <span className="whitespace-nowrap">{(() => { const c = new Set(allEntries.filter(e => e.athlete_id === athlete.id).map(e => e.meet_id)).size; return `${c} ${c === 1 ? 'meet' : 'meets'}`; })()}</span>
+                          <span className="whitespace-nowrap">{(() => { const today = new Date().toISOString().split('T')[0]; const completedMeetIds = new Set(meets.filter(m => m.date <= today).map(m => m.id)); const c = new Set(allEntries.filter(e => e.athlete_id === athlete.id && completedMeetIds.has(e.meet_id)).map(e => e.meet_id)).size; return `${c} ${c === 1 ? 'meet' : 'meets'}`; })()}</span>
                         </p>
                       </div>
                     </div>
@@ -166,7 +166,7 @@ export default function PublicSearch() {
                     </span>
                     <span className="badge bg-gray-100 text-gray-800">{selectedAthlete.gender}</span>
                     <span className="badge bg-navy-100 text-navy-800">
-                      {Object.keys(entriesByMeet).length} {Object.keys(entriesByMeet).length === 1 ? 'meet' : 'meets'}
+                      {(() => { const today = new Date().toISOString().split('T')[0]; const c = Object.keys(entriesByMeet).filter(meetId => { const m = meets.find(mt => mt.id === meetId); return m && m.date <= today; }).length; return `${c} ${c === 1 ? 'meet' : 'meets'}`; })()}
                     </span>
                   </div>
                 </div>
