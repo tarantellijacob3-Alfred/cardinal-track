@@ -219,17 +219,29 @@ export default function AthleteDetail() {
         )}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="card text-center">
-          <p className="text-3xl font-bold text-navy-800">{Object.keys(entriesByMeet).length}</p>
-          <p className="text-sm text-gray-500">Meets</p>
-        </div>
-        <div className="card text-center">
-          <p className="text-3xl font-bold text-navy-800">{filteredEntries.length}</p>
-          <p className="text-sm text-gray-500">Total Entries</p>
-        </div>
-      </div>
+      {/* Stats — only count meets that have already happened */}
+      {(() => {
+        const today = new Date()
+        today.setHours(23, 59, 59, 999) // include today's meets
+        const pastMeetIds = Object.keys(entriesByMeet).filter(meetId => {
+          const meet = meets.find(m => m.id === meetId)
+          if (!meet) return false
+          return new Date(meet.date + 'T00:00:00') <= today
+        })
+        const pastEntryCount = pastMeetIds.reduce((sum, meetId) => sum + (entriesByMeet[meetId]?.length || 0), 0)
+        return (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="card text-center">
+              <p className="text-3xl font-bold text-navy-800">{pastMeetIds.length}</p>
+              <p className="text-sm text-gray-500">Meets</p>
+            </div>
+            <div className="card text-center">
+              <p className="text-3xl font-bold text-navy-800">{pastEntryCount}</p>
+              <p className="text-sm text-gray-500">Total Entries</p>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Meet assignments */}
       <div>

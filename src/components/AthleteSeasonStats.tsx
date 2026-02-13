@@ -30,11 +30,13 @@ export default function AthleteSeasonStats({ athleteId }: AthleteSeasonStatsProp
 
       // Use !inner join to only count entries whose meet still exists
       // and belongs to the selected season
+      const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
       const { data: entries } = await supabase
         .from('meet_entries')
-        .select('id, meet_id, meets!inner(id, season_id)')
+        .select('id, meet_id, meets!inner(id, season_id, date)')
         .eq('athlete_id', athleteId)
         .eq('meets.season_id', selectedSeasonId!)
+        .lte('meets.date', today) // only count past/today meets
 
       if (entries && entries.length > 0) {
         setEventCount(entries.length)
