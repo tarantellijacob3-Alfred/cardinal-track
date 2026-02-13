@@ -30,6 +30,7 @@ export default function Navbar() {
     { path: teamPath('/meets'), label: 'Meets' },
     { path: teamPath('/events'), label: 'Events' },
     { path: teamPath('/search'), label: 'Search' },
+    ...(user && !isCoach ? [{ path: teamPath('/favorites'), label: '⭐ Favorites' }] : []),
   ]
 
   // Use team logo or fallback

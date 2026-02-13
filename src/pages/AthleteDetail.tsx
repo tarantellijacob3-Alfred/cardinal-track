@@ -1,18 +1,28 @@
 import { useParams, Link } from 'react-router-dom'
-import { useAthlete } from '../hooks/useAthletes'
+import { useAthlete, useAthletes } from '../hooks/useAthletes'
 import { useAthleteEntries } from '../hooks/useMeetEntries'
 import { useTeam, useTeamPath } from '../hooks/useTeam'
+import { useAuth } from '../contexts/AuthContext'
+import { useFavorites } from '../hooks/useFavorites'
 import { supabase } from '../lib/supabase'
+import { searchTFRRS, isValidTFRRSUrl } from '../lib/tfrrs'
+import TFRRSLink from '../components/TFRRSLink'
 import { useState, useEffect } from 'react'
 import type { Meet } from '../types/database'
 
 export default function AthleteDetail() {
   const { id } = useParams<{ id: string }>()
   const { athlete, loading: athleteLoading } = useAthlete(id)
+  const { updateAthlete } = useAthletes()
   const { entries, loading: entriesLoading } = useAthleteEntries(id)
   const { team } = useTeam()
   const teamPath = useTeamPath()
+  const { user, isCoach } = useAuth()
+  const { isFavorite, toggleFavorite } = useFavorites()
   const [meets, setMeets] = useState<Meet[]>([])
+  const [showTFRRSInput, setShowTFRRSInput] = useState(false)
+  const [tfrrsInput, setTfrrsInput] = useState('')
+  const [tfrrsLoading, setTfrrsLoading] = useState(false)
 
   useEffect(() => {
     async function fetchMeets() {
@@ -63,27 +73,127 @@ export default function AthleteDetail() {
 
       {/* Athlete header */}
       <div className="card">
-        <div className="flex items-center space-x-4">
-          <div className="w-16 h-16 bg-navy-100 rounded-full flex items-center justify-center">
-            <span className="text-xl font-bold text-navy-700">
-              {athlete.first_name[0]}{athlete.last_name[0]}
-            </span>
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-navy-900">
-              {athlete.first_name} {athlete.last_name}
-            </h1>
-            <div className="flex items-center space-x-3 mt-1">
-              <span className={`badge ${athlete.level === 'JV' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
-                {athlete.level}
+        <div className="flex items-start justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 bg-navy-100 rounded-full flex items-center justify-center">
+              <span className="text-xl font-bold text-navy-700">
+                {athlete.first_name[0]}{athlete.last_name[0]}
               </span>
-              <span className="badge bg-gray-100 text-gray-800">{athlete.gender}</span>
-              {athlete.grade && (
-                <span className="text-sm text-gray-500">Grade {athlete.grade}</span>
-              )}
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-navy-900">
+                {athlete.first_name} {athlete.last_name}
+              </h1>
+              <div className="flex items-center flex-wrap gap-2 mt-1">
+                <span className={`badge ${athlete.level === 'JV' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
+                  {athlete.level}
+                </span>
+                <span className="badge bg-gray-100 text-gray-800">{athlete.gender}</span>
+                {athlete.grade && (
+                  <span className="text-sm text-gray-500">Grade {athlete.grade}</span>
+                )}
+                {athlete.tfrrs_url && (
+                  <TFRRSLink url={athlete.tfrrs_url} />
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Favorite button */}
+          {user && (
+            <button
+              onClick={() => toggleFavorite(athlete.id)}
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors"
+              title={isFavorite(athlete.id) ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              {isFavorite(athlete.id) ? (
+                <svg className="w-7 h-7 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              ) : (
+                <svg className="w-7 h-7 text-gray-300 hover:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              )}
+            </button>
+          )}
         </div>
+
+        {/* TFRRS linking (coach only) */}
+        {isCoach && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            {athlete.tfrrs_url ? (
+              <div className="flex items-center justify-between">
+                <TFRRSLink url={athlete.tfrrs_url} variant="button" />
+                <button
+                  onClick={() => {
+                    setTfrrsInput(athlete.tfrrs_url || '')
+                    setShowTFRRSInput(true)
+                  }}
+                  className="text-sm text-gray-500 hover:text-navy-700"
+                >
+                  Edit TFRRS Link
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 flex-wrap">
+                <a
+                  href={searchTFRRS(team?.school_name || '', `${athlete.first_name} ${athlete.last_name}`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 hover:text-blue-800 inline-flex items-center space-x-1"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <span>Search TFRRS</span>
+                </a>
+                <button
+                  onClick={() => setShowTFRRSInput(true)}
+                  className="text-sm text-navy-600 hover:text-navy-800 font-medium"
+                >
+                  Link to TFRRS
+                </button>
+              </div>
+            )}
+
+            {showTFRRSInput && (
+              <div className="mt-3 flex items-center gap-2">
+                <input
+                  type="url"
+                  value={tfrrsInput}
+                  onChange={e => setTfrrsInput(e.target.value)}
+                  placeholder="Paste TFRRS profile URL..."
+                  className="input flex-1 text-sm"
+                />
+                <button
+                  onClick={async () => {
+                    if (tfrrsInput && !isValidTFRRSUrl(tfrrsInput)) {
+                      alert('Please enter a valid TFRRS URL (tfrrs.org)')
+                      return
+                    }
+                    setTfrrsLoading(true)
+                    await updateAthlete(athlete.id, { tfrrs_url: tfrrsInput || null } as Record<string, unknown>)
+                    setTfrrsLoading(false)
+                    setShowTFRRSInput(false)
+                    // Reload page to reflect changes
+                    window.location.reload()
+                  }}
+                  disabled={tfrrsLoading}
+                  className="btn-primary text-sm min-h-[36px]"
+                >
+                  {tfrrsLoading ? '...' : 'Save'}
+                </button>
+                <button
+                  onClick={() => setShowTFRRSInput(false)}
+                  className="btn-ghost text-sm min-h-[36px]"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Stats */}

@@ -14,6 +14,10 @@ import PublicSearch from './pages/PublicSearch'
 import MeetReport from './pages/MeetReport'
 import Events from './pages/Events'
 import Settings from './pages/Settings'
+import TeamOnboarding from './pages/TeamOnboarding'
+import ParentSignup from './pages/ParentSignup'
+import JoinTeam from './pages/JoinTeam'
+import MyFavorites from './pages/MyFavorites'
 
 /** Default team slug for backward-compatible redirects */
 const DEFAULT_SLUG = 'bishop-snyder'
@@ -29,6 +33,9 @@ export default function App() {
           {/* Global auth routes (not team-scoped) */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/onboard" element={<TeamOnboarding />} />
+          <Route path="/parent-signup" element={<ParentSignup />} />
+          <Route path="/join" element={<JoinTeam />} />
 
           {/* ══════ Backward-compatible redirects ══════ */}
           {/* Old Bishop Snyder paths → new team-scoped paths */}
@@ -52,6 +59,7 @@ export default function App() {
             <Route path="athletes/:id" element={<AthleteDetail />} />
             <Route path="search" element={<PublicSearch />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="favorites" element={<MyFavorites />} />
           </Route>
 
           {/* Catch-all → landing */}

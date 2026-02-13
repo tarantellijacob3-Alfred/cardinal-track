@@ -73,13 +73,13 @@ export default function Login() {
           <p className="text-center text-sm text-gray-500">
             Don&apos;t have an account?{' '}
             <Link to="/register" className="text-navy-700 hover:text-navy-900 font-medium">
-              Register
+              Register as Coach
             </Link>
           </p>
 
           <div className="pt-2">
-            <Link to="/t/bishop-snyder/meets" className="btn-secondary w-full text-center block min-h-[44px] flex items-center justify-center">
-              Continue as parent or athlete
+            <Link to="/parent-signup" className="btn-secondary w-full text-center block min-h-[44px] flex items-center justify-center">
+              Sign up as Parent / Athlete
             </Link>
           </div>
 

@@ -31,6 +31,16 @@ export interface Database {
         Insert: ProfileInsert
         Update: ProfileUpdate
       }
+      favorites: {
+        Row: Favorite
+        Insert: FavoriteInsert
+        Update: FavoriteUpdate
+      }
+      tfrrs_meet_links: {
+        Row: TFRRSMeetLink
+        Insert: TFRRSMeetLinkInsert
+        Update: TFRRSMeetLinkUpdate
+      }
     }
   }
 }
@@ -65,12 +75,14 @@ export interface Athlete {
   gender: 'Boys' | 'Girls'
   active: boolean
   team_id: string
+  tfrrs_url: string | null
   created_at: string
 }
 
-export type AthleteInsert = Omit<Athlete, 'id' | 'created_at'> & {
+export type AthleteInsert = Omit<Athlete, 'id' | 'created_at' | 'tfrrs_url'> & {
   id?: string
   created_at?: string
+  tfrrs_url?: string | null
 }
 
 export type AthleteUpdate = Partial<AthleteInsert>
@@ -137,6 +149,36 @@ export type ProfileInsert = Omit<Profile, 'created_at'> & {
 }
 
 export type ProfileUpdate = Partial<ProfileInsert>
+
+// Favorites
+export interface Favorite {
+  id: string
+  profile_id: string
+  athlete_id: string
+  created_at: string
+}
+
+export type FavoriteInsert = Omit<Favorite, 'id' | 'created_at'> & {
+  id?: string
+  created_at?: string
+}
+
+export type FavoriteUpdate = Partial<FavoriteInsert>
+
+// TFRRS Meet Links
+export interface TFRRSMeetLink {
+  id: string
+  meet_id: string
+  tfrrs_url: string
+  created_at: string
+}
+
+export type TFRRSMeetLinkInsert = Omit<TFRRSMeetLink, 'id' | 'created_at'> & {
+  id?: string
+  created_at?: string
+}
+
+export type TFRRSMeetLinkUpdate = Partial<TFRRSMeetLinkInsert>
 
 // Extended types for joined queries
 export interface MeetEntryWithDetails extends MeetEntry {

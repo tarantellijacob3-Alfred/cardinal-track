@@ -29,10 +29,10 @@ export default function Landing() {
                 Sign In
               </Link>
               <Link
-                to="/t/bishop-snyder"
+                to="/onboard"
                 className="bg-gold-400 text-navy-900 px-4 py-2 rounded-lg font-medium hover:bg-gold-300 transition-colors"
               >
-                View Dashboard
+                Start Your Team
               </Link>
             </>
           )}
@@ -51,14 +51,28 @@ export default function Landing() {
         </p>
         <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
           <Link
+            to="/onboard"
+            className="bg-gold-400 text-navy-900 px-8 py-3 rounded-lg font-bold text-lg hover:bg-gold-300 transition-colors"
+          >
+            Start Your Team
+          </Link>
+          <Link
             to="/t/bishop-snyder"
             className="bg-cardinal-600 text-white px-8 py-3 rounded-lg font-medium text-lg hover:bg-cardinal-700 transition-colors"
           >
-            See It In Action
+            See in Action
+          </Link>
+        </div>
+        <div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
+          <Link
+            to="/parent-signup"
+            className="text-gray-300 hover:text-white text-sm font-medium transition-colors"
+          >
+            Join as Parent / Athlete →
           </Link>
           <Link
             to="/t/bishop-snyder/search"
-            className="border border-gray-500 text-gray-300 px-8 py-3 rounded-lg font-medium text-lg hover:bg-navy-700 transition-colors"
+            className="text-gray-400 hover:text-gray-200 text-sm transition-colors"
           >
             Search Athletes
           </Link>

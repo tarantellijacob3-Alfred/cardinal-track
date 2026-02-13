@@ -1,15 +1,17 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useMeet, useMeets } from '../hooks/useMeets'
 import { useEvents } from '../hooks/useEvents'
 import { useAthletes } from '../hooks/useAthletes'
 import { useMeetEntries } from '../hooks/useMeetEntries'
-import { useTeamPath } from '../hooks/useTeam'
+import { useTeam, useTeamPath } from '../hooks/useTeam'
 import EventCard from '../components/EventCard'
 import AthleteAssignModal from '../components/AthleteAssignModal'
 import PrintMeetSheet from '../components/PrintMeetSheet'
-import type { TrackEvent, Meet, MeetEntryWithDetails } from '../types/database'
+import TFRRSLink from '../components/TFRRSLink'
+import { searchTFRRSMeet, isValidTFRRSUrl } from '../lib/tfrrs'
+import type { TrackEvent, Meet, MeetEntryWithDetails, TFRRSMeetLink } from '../types/database'
 import { supabase } from '../lib/supabase'
 
 type ViewMode = 'card' | 'grid'
@@ -326,6 +328,51 @@ export default function MeetDetail() {
   const [viewMode, setViewMode] = useState<ViewMode>('card')
   const [showCopyModal, setShowCopyModal] = useState(false)
   const [genderFilter, setGenderFilter] = useState<'all' | 'Boys' | 'Girls'>('all')
+  const { team } = useTeam()
+
+  // TFRRS state
+  const [tfrrsLinks, setTfrrsLinks] = useState<TFRRSMeetLink[]>([])
+  const [showTFRRSInput, setShowTFRRSInput] = useState(false)
+  const [tfrrsInput, setTfrrsInput] = useState('')
+  const [tfrrsLoading, setTfrrsLoading] = useState(false)
+
+  // Fetch TFRRS links for this meet
+  useEffect(() => {
+    if (!id) return
+    async function fetchTFRRS() {
+      const { data } = await supabase
+        .from('tfrrs_meet_links')
+        .select('*')
+        .eq('meet_id', id!)
+      if (data) setTfrrsLinks(data as TFRRSMeetLink[])
+    }
+    fetchTFRRS()
+  }, [id])
+
+  const handleAddTFRRS = async () => {
+    if (!id || !tfrrsInput) return
+    if (!isValidTFRRSUrl(tfrrsInput)) {
+      alert('Please enter a valid TFRRS URL (tfrrs.org)')
+      return
+    }
+    setTfrrsLoading(true)
+    const { data, error } = await supabase
+      .from('tfrrs_meet_links')
+      .insert({ meet_id: id, tfrrs_url: tfrrsInput } as Record<string, unknown>)
+      .select()
+      .single()
+    if (!error && data) {
+      setTfrrsLinks(prev => [...prev, data as TFRRSMeetLink])
+      setTfrrsInput('')
+      setShowTFRRSInput(false)
+    }
+    setTfrrsLoading(false)
+  }
+
+  const handleRemoveTFRRS = async (linkId: string) => {
+    await supabase.from('tfrrs_meet_links').delete().eq('id', linkId)
+    setTfrrsLinks(prev => prev.filter(l => l.id !== linkId))
+  }
 
   const loading = meetLoading || eventsLoading || entriesLoading
 
@@ -542,6 +589,74 @@ export default function MeetDetail() {
 
           {meet.notes && (
             <p className="mt-3 text-sm text-gray-300 border-t border-navy-700 pt-3">{meet.notes}</p>
+          )}
+
+          {/* TFRRS Results Links */}
+          {(tfrrsLinks.length > 0 || isCoach) && (
+            <div className="mt-3 border-t border-navy-700 pt-3">
+              <div className="flex items-center flex-wrap gap-2">
+                {tfrrsLinks.map(link => (
+                  <div key={link.id} className="flex items-center gap-1">
+                    <TFRRSLink url={link.tfrrs_url} variant="button" />
+                    {isCoach && (
+                      <button
+                        onClick={() => handleRemoveTFRRS(link.id)}
+                        className="text-red-300 hover:text-red-100 p-1"
+                        title="Remove TFRRS link"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                ))}
+
+                {isCoach && !showTFRRSInput && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowTFRRSInput(true)}
+                      className="text-sm text-blue-300 hover:text-blue-100 font-medium"
+                    >
+                      + Link TFRRS Results
+                    </button>
+                    <a
+                      href={searchTFRRSMeet(meet.name, meet.date)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-gray-400 hover:text-gray-200"
+                    >
+                      Search TFRRS
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {isCoach && showTFRRSInput && (
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="url"
+                    value={tfrrsInput}
+                    onChange={e => setTfrrsInput(e.target.value)}
+                    placeholder="Paste TFRRS results URL..."
+                    className="flex-1 bg-navy-700 border border-navy-600 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-400 focus:ring-1 focus:ring-gold-400 focus:border-gold-400"
+                  />
+                  <button
+                    onClick={handleAddTFRRS}
+                    disabled={tfrrsLoading}
+                    className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-700"
+                  >
+                    {tfrrsLoading ? '...' : 'Add'}
+                  </button>
+                  <button
+                    onClick={() => { setShowTFRRSInput(false); setTfrrsInput('') }}
+                    className="text-gray-400 hover:text-white text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

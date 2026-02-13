@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null }
   }
 
-  async function signUp(email: string, password: string, fullName: string, _role: string) {
+  async function signUp(email: string, password: string, fullName: string, role: string) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -92,12 +92,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
 
     if (!error && data.user) {
-      // All signups are coach accounts pending approval
+      // Parent/athlete signups are auto-approved; coach signups need approval
+      const isParentOrAthlete = role === 'parent' || role === 'athlete'
       await supabase
         .from('profiles')
         .update({
-          role: 'coach',
-          approved: false,
+          role: isParentOrAthlete ? role : 'coach',
+          approved: isParentOrAthlete ? true : false,
           full_name: fullName
         } as Record<string, unknown>)
         .eq('id', data.user.id)

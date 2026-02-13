@@ -1,8 +1,8 @@
 # V2 Build Log — Multi-Team Foundation
 
-**Built:** 2025-07-11  
-**Phases Completed:** 1 (Foundation), 2 (URL Routing), 4 (CSV Upload), 6 (Mobile Polish)  
-**Build Status:** ✅ Compiles & builds successfully  
+**Built:** 2025-07-11 (Phases 1/2/4/6), 2025-07-12 (Phases 5/7/8)  
+**Phases Completed:** 1 (Foundation), 2 (URL Routing), 4 (CSV Upload), 5 (Parent Signup + Favorites), 6 (Mobile Polish), 7 (Team Onboarding + Stripe), 8 (TFRRS Auto-Linking)  
+**Build Status:** ✅ Compiles & builds successfully with zero errors  
 **Deployment:** LOCAL ONLY — NOT deployed to Vercel  
 
 ---
@@ -155,6 +155,90 @@ All old paths permanently redirect to `/t/bishop-snyder/*`:
 - `vite.config.ts` — no changes needed
 - `vercel.json` — not deployed, no changes
 - `index.html` — no changes needed
+
+---
+
+---
+
+## Phase 7: Team Onboarding + Stripe
+
+### New Files
+| File | Purpose |
+|------|---------|
+| `src/pages/TeamOnboarding.tsx` | Multi-step wizard: Step 1 (Coach account — new or sign in), Step 2 (Team info — name, school, slug, colors, logo), Step 3 (Plan selection — $300/season), Step 4 (Create team + redirect). Creates team in Supabase with `is_grandfathered: false`, sets coach's `profile.team_id`. |
+
+### Modified Files
+| File | Changes |
+|------|---------|
+| `src/pages/Landing.tsx` | "Start Your Team" button → `/onboard`. "See in Action" → `/t/bishop-snyder`. "Join as Parent" link → `/parent-signup`. Nav updated. |
+| `src/App.tsx` | Added `/onboard` route for `TeamOnboarding`. |
+
+### Stripe Integration Status
+- **UI complete**: Full plan selection and checkout flow built.
+- **TODO**: Replace `STRIPE_PAYMENT_LINK` placeholder in `TeamOnboarding.tsx` with Jacob's real Stripe Payment Link.
+- **Current behavior**: Teams are created directly (payment skipped with note). When Stripe is ready, create team on successful webhook, redirect to Stripe first.
+
+---
+
+## Phase 5: Parent/Athlete Open Signup + Favorites
+
+### New Migrations
+| File | Purpose |
+|------|---------|
+| `supabase/migrations/00010_favorites.sql` | Creates `favorites` table (id, profile_id FK, athlete_id FK, created_at, UNIQUE constraint). RLS: users can read/write their own favorites only. |
+
+### New Files
+| File | Purpose |
+|------|---------|
+| `src/pages/ParentSignup.tsx` | Simple signup: name, email, password, pick team from dropdown. Role = 'parent', auto-approved. Redirects to team dashboard after signup. |
+| `src/pages/JoinTeam.tsx` | For existing users to join/switch teams. Shows list of active teams with join buttons. Current team highlighted. |
+| `src/pages/MyFavorites.tsx` | Personal dashboard showing favorited athletes with upcoming meets and event assignments. Empty state links to search. |
+| `src/hooks/useFavorites.ts` | CRUD hook for favorites: `addFavorite`, `removeFavorite`, `toggleFavorite`, `isFavorite`. Scoped to current user via `auth.uid()`. |
+
+### Modified Files
+| File | Changes |
+|------|---------|
+| `src/pages/AthleteDetail.tsx` | Added ⭐ favorite toggle button (logged-in users only). Shows filled/empty star. |
+| `src/pages/PublicSearch.tsx` | Added ⭐ favorite button in search results for logged-in users. |
+| `src/pages/Login.tsx` | Changed "Register" link to "Register as Coach". Added "Sign up as Parent/Athlete" button → `/parent-signup`. |
+| `src/pages/Landing.tsx` | Added "Join as Parent" link in hero section. |
+| `src/components/Navbar.tsx` | Added "⭐ Favorites" nav link for logged-in non-coach users. |
+| `src/contexts/AuthContext.tsx` | Updated `signUp()` to support parent/athlete role (auto-approved) vs coach role (pending approval). |
+| `src/App.tsx` | Added routes: `/parent-signup`, `/join`, `/t/:slug/favorites`. |
+| `src/types/database.ts` | Added `Favorite`, `FavoriteInsert`, `FavoriteUpdate` types. |
+
+---
+
+## Phase 8: TFRRS Auto-Linking
+
+### New Migrations
+| File | Purpose |
+|------|---------|
+| `supabase/migrations/00011_tfrrs.sql` | Adds `tfrrs_url` column to athletes. Creates `tfrrs_meet_links` table (id, meet_id FK, tfrrs_url, created_at). RLS: public read, coaches write. |
+
+### New Files
+| File | Purpose |
+|------|---------|
+| `src/lib/tfrrs.ts` | Helper functions: `searchTFRRS(school, name)` builds TFRRS search URL for athlete profiles. `searchTFRRSMeet(meetName, date)` builds TFRRS search URL for meet results. `isValidTFRRSUrl()` validates TFRRS URLs. `tfrrsDisplayLabel()` extracts display label. |
+| `src/components/TFRRSLink.tsx` | Badge/button component that links to TFRRS. Two variants: `badge` (inline, small) and `button` (larger, blue). |
+
+### Modified Files
+| File | Changes |
+|------|---------|
+| `src/pages/AthleteDetail.tsx` | Shows TFRRS link badge if athlete has `tfrrs_url`. Coach-only section: "Search TFRRS" link + "Link to TFRRS" button with URL input. Edit existing link. |
+| `src/pages/MeetDetail.tsx` | Added TFRRS section in meet header: shows linked TFRRS results, coach can add/remove TFRRS result URLs, "Search TFRRS" link auto-generates search query from meet name+year. |
+| `src/pages/MeetReport.tsx` | Shows TFRRS badge next to athlete names who have `tfrrs_url` set. |
+| `src/types/database.ts` | Added `tfrrs_url` to `Athlete` interface. Added `TFRRSMeetLink`, `TFRRSMeetLinkInsert`, `TFRRSMeetLinkUpdate` types. Made `tfrrs_url` optional in `AthleteInsert`. |
+
+---
+
+## Migration Instructions
+
+**Jacob needs to run two new migrations in Supabase SQL Editor.**  
+See `MIGRATIONS-PHASE2.md` for copy-paste-ready SQL.
+
+1. **00010_favorites.sql** — Favorites table + RLS
+2. **00011_tfrrs.sql** — TFRRS columns + table + RLS
 
 ---
 

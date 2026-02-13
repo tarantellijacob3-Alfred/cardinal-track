@@ -4,6 +4,7 @@ import { useMeet } from '../hooks/useMeets'
 import { useEvents } from '../hooks/useEvents'
 import { useMeetEntries } from '../hooks/useMeetEntries'
 import { useTeam, useTeamPath } from '../hooks/useTeam'
+import TFRRSLink from '../components/TFRRSLink'
 import type { MeetEntryWithDetails } from '../types/database'
 
 interface AthleteRow {
@@ -14,6 +15,7 @@ interface AthleteRow {
   grade: number | null
   level: 'JV' | 'Varsity'
   gender: 'Boys' | 'Girls'
+  tfrrsUrl: string | null
   events: { name: string; shortName: string; category: string; isRelay: boolean; relayLeg: number | null; relayTeam: string | null }[]
 }
 
@@ -75,6 +77,7 @@ export default function MeetReport() {
         grade: athlete.grade,
         level: athlete.level,
         gender: athlete.gender,
+        tfrrsUrl: athlete.tfrrs_url || null,
         events: [],
       })
     }
@@ -221,12 +224,17 @@ export default function MeetReport() {
               <div key={athlete.id} className="card">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
-                    <Link
-                      to={teamPath(`/athletes/${athlete.id}`)}
-                      className="text-lg font-semibold text-navy-900 hover:text-navy-700"
-                    >
-                      {athlete.name}
-                    </Link>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Link
+                        to={teamPath(`/athletes/${athlete.id}`)}
+                        className="text-lg font-semibold text-navy-900 hover:text-navy-700"
+                      >
+                        {athlete.name}
+                      </Link>
+                      {athlete.tfrrsUrl && (
+                        <TFRRSLink url={athlete.tfrrsUrl} />
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       {athlete.grade && (
                         <span className="text-xs text-gray-500">Grade {athlete.grade}</span>

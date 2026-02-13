@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useTeam, useTeamPath } from '../hooks/useTeam'
+import { useAuth } from '../contexts/AuthContext'
+import { useFavorites } from '../hooks/useFavorites'
 import SearchBar from '../components/SearchBar'
 import type { Athlete, Meet, MeetEntryWithDetails } from '../types/database'
 
@@ -14,6 +16,8 @@ export default function PublicSearch() {
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null)
   const { team } = useTeam()
   const teamPath = useTeamPath()
+  const { user } = useAuth()
+  const { isFavorite, toggleFavorite } = useFavorites()
 
   useEffect(() => {
     async function fetchData() {
@@ -88,31 +92,49 @@ export default function PublicSearch() {
           ) : (
             <div className="divide-y divide-gray-100">
               {filteredAthletes.map(athlete => (
-                <button
-                  key={athlete.id}
-                  onClick={() => setSelectedAthlete(athlete)}
-                  className="w-full flex items-center justify-between p-3 hover:bg-navy-50 rounded-lg transition-colors min-h-[44px]"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-navy-100 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium text-navy-700">
-                        {athlete.first_name[0]}{athlete.last_name[0]}
-                      </span>
+                <div key={athlete.id} className="flex items-center min-h-[44px]">
+                  <button
+                    onClick={() => setSelectedAthlete(athlete)}
+                    className="flex-1 flex items-center justify-between p-3 hover:bg-navy-50 rounded-lg transition-colors"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-navy-100 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-navy-700">
+                          {athlete.first_name[0]}{athlete.last_name[0]}
+                        </span>
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium text-navy-900">
+                          {athlete.last_name}, {athlete.first_name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {athlete.level} {athlete.gender}
+                          {athlete.grade ? ` · Grade ${athlete.grade}` : ''}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <p className="font-medium text-navy-900">
-                        {athlete.last_name}, {athlete.first_name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {athlete.level} {athlete.gender}
-                        {athlete.grade ? ` · Grade ${athlete.grade}` : ''}
-                      </p>
-                    </div>
-                  </div>
-                  <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
+                    <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                  {user && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleFavorite(athlete.id) }}
+                      className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center flex-shrink-0"
+                      title={isFavorite(athlete.id) ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      {isFavorite(athlete.id) ? (
+                        <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-gray-300 hover:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           )}
