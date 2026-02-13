@@ -224,8 +224,8 @@ export default function TeamOnboarding() {
       {/* Nav */}
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center space-x-3">
-          <img src="/cardinal-logo.jpg" alt="Cardinal Track" className="w-10 h-10 object-contain" />
-          <span className="text-white font-bold text-xl">Cardinal Track</span>
+          
+          <span className="text-white font-bold text-xl">TrackBoard</span>
         </Link>
         <Link to="/login" className="text-gray-300 hover:text-white text-sm font-medium">
           Already have an account? Sign In
@@ -377,7 +377,7 @@ export default function TeamOnboarding() {
                   <span className="text-gray-400 font-normal ml-1">(auto-generated)</span>
                 </label>
                 <div className="flex items-center">
-                  <span className="text-gray-400 text-sm mr-1">cardinaltrack.app/t/</span>
+                  <span className="text-gray-400 text-sm mr-1">trackboard.app/t/</span>
                   <input
                     type="text"
                     value={teamInfo.slug}
