@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAthlete, useAthletes } from '../hooks/useAthletes'
 import { useAthleteEntries } from '../hooks/useMeetEntries'
 import { useTeam, useTeamPath } from '../hooks/useTeam'
@@ -19,6 +19,7 @@ export default function AthleteDetail() {
   const { entries, loading: entriesLoading } = useAthleteEntries(id)
   const { team, guestMode, selectedSeasonId } = useTeam()
   const teamPath = useTeamPath()
+  const navigate = useNavigate()
   const { user, isCoach } = useAuth()
   const { isFavorite, toggleFavorite } = useFavorites()
   const [meets, setMeets] = useState<Meet[]>([])
@@ -82,9 +83,9 @@ export default function AthleteDetail() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <Link to={teamPath('/roster')} className="text-sm text-navy-600 hover:text-navy-800 font-medium mb-2 inline-flex items-center min-h-[44px]">
-          ← Back to Roster
-        </Link>
+        <button onClick={() => navigate(-1)} className="text-sm text-navy-600 hover:text-navy-800 font-medium mb-2 inline-flex items-center min-h-[44px] bg-transparent border-none cursor-pointer">
+          ← Back
+        </button>
         <SeasonSelector />
       </div>
 
