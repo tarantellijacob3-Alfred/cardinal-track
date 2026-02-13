@@ -181,7 +181,7 @@ export default function AthleteDetail() {
             )}
 
             {showTFRRSInput && (
-              <div className="mt-3 flex items-center gap-2">
+              <div className="mt-3 flex items-center gap-2 flex-wrap">
                 <input
                   type="url"
                   value={tfrrsInput}

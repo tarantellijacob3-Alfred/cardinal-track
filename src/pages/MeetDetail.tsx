@@ -634,7 +634,7 @@ export default function MeetDetail() {
               </div>
 
               {effectiveIsCoach && showTFRRSInput && (
-                <div className="mt-2 flex items-center gap-2">
+                <div className="mt-2 flex items-center gap-2 flex-wrap">
                   <input
                     type="url"
                     value={tfrrsInput}
