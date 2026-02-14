@@ -331,6 +331,56 @@ export default function MeetDetail() {
   const { team, guestMode } = useTeam()
   const effectiveIsCoach = isCoach && !guestMode
 
+  // Per-meet event activation state
+  const [deactivatedEvents, setDeactivatedEvents] = useState<Set<string>>(new Set())
+
+  // Fetch deactivated events for this meet
+  useEffect(() => {
+    if (!id) return
+    async function fetchDeactivated() {
+      const { data } = await supabase
+        .from('meet_event_status')
+        .select('event_id')
+        .eq('meet_id', id!)
+        .eq('active', false)
+      if (data) {
+        setDeactivatedEvents(new Set(data.map((d: { event_id: string }) => d.event_id)))
+      }
+    }
+    fetchDeactivated()
+  }, [id])
+
+  const toggleEventActive = async (eventId: string) => {
+    if (!id) return
+    const isCurrentlyDeactivated = deactivatedEvents.has(eventId)
+
+    if (isCurrentlyDeactivated) {
+      // Re-activate: delete the row
+      await supabase
+        .from('meet_event_status')
+        .delete()
+        .eq('meet_id', id)
+        .eq('event_id', eventId)
+      setDeactivatedEvents(prev => {
+        const next = new Set(prev)
+        next.delete(eventId)
+        return next
+      })
+    } else {
+      // Deactivate: insert row with active=false
+      await supabase
+        .from('meet_event_status')
+        .upsert({
+          meet_id: id,
+          event_id: eventId,
+          active: false,
+        } as Record<string, unknown>, { onConflict: 'meet_id,event_id' })
+      setDeactivatedEvents(prev => new Set(prev).add(eventId))
+    }
+  }
+
+  const isEventActive = (eventId: string) => !deactivatedEvents.has(eventId)
+
   // TFRRS state
   const [tfrrsLinks, setTfrrsLinks] = useState<TFRRSMeetLink[]>([])
   const [showTFRRSInput, setShowTFRRSInput] = useState(false)
@@ -418,12 +468,29 @@ export default function MeetDetail() {
   const meetDate = new Date(meet.date + 'T00:00:00')
 
   const categories = ['Field', 'Sprint', 'Distance', 'Hurdles', 'Relay', 'Other']
-  const filteredEvents = activeCategory
-    ? events.filter(e => e.category === activeCategory)
-    : events
+  // Filter events: hide inactive ones for non-coaches, apply category filter
+  const visibleEvents = useMemo(() => {
+    let evts = events
+    // Non-coaches don't see deactivated events
+    if (!effectiveIsCoach) {
+      evts = evts.filter(e => isEventActive(e.id))
+    }
+    if (activeCategory) {
+      evts = evts.filter(e => e.category === activeCategory)
+    }
+    return evts
+  }, [events, effectiveIsCoach, deactivatedEvents, activeCategory])
+
+  // Keep filteredEvents name for backward compat in renders
+  const filteredEvents = visibleEvents
 
   const handleAssign = async (athleteId: string, relayLeg?: number, relayTeam?: string) => {
     if (!assigningEvent || !id) return
+
+    if (!isEventActive(assigningEvent.id)) {
+      alert('This event is deactivated for this meet.')
+      return
+    }
 
     const count = getAthleteEventCount(athleteId, !relaysCountTowardLimit)
     if (count >= 4 && !assigningEvent.is_relay) {
@@ -582,9 +649,9 @@ export default function MeetDetail() {
             </div>
             <div className="bg-navy-700/50 rounded-lg p-3 text-center">
               <p className="text-2xl font-bold text-gold-400">
-                {events.filter(e => getEntriesByEvent(e.id).length > 0).length}
+                {events.filter(e => (effectiveIsCoach || isEventActive(e.id)) && getEntriesByEvent(e.id).length > 0).length}
               </p>
-              <p className="text-xs text-gray-300">Events</p>
+              <p className="text-xs text-gray-300">Active Events</p>
             </div>
           </div>
 
@@ -801,7 +868,9 @@ export default function MeetDetail() {
               event={event}
               entries={getEntriesByEvent(event.id)}
               isCoach={effectiveIsCoach}
-              onAssign={() => setAssigningEvent(event)}
+              isActive={isEventActive(event.id)}
+              onToggleActive={effectiveIsCoach ? toggleEventActive : undefined}
+              onAssign={isEventActive(event.id) ? () => setAssigningEvent(event) : undefined}
               onRemoveEntry={handleRemoveEntry}
             />
           ))}
@@ -813,7 +882,7 @@ export default function MeetDetail() {
         <div className="no-print">
           <GridView
             athletes={filteredAthletes}
-            events={events}
+            events={effectiveIsCoach ? events : events.filter(e => isEventActive(e.id))}
             entries={entries}
             isCoach={effectiveIsCoach}
             relaysCountTowardLimit={relaysCountTowardLimit}

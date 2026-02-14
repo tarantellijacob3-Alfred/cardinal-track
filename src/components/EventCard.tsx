@@ -4,6 +4,8 @@ interface Props {
   event: TrackEvent
   entries: MeetEntryWithDetails[]
   isCoach: boolean
+  isActive?: boolean
+  onToggleActive?: (eventId: string) => void
   onAssign?: () => void
   onRemoveEntry?: (entryId: string) => void
 }
@@ -26,22 +28,33 @@ const categoryBadge: Record<string, string> = {
   Other: 'badge-other',
 }
 
-export default function EventCard({ event, entries, isCoach, onAssign, onRemoveEntry }: Props) {
+export default function EventCard({ event, entries, isCoach, isActive = true, onToggleActive, onAssign, onRemoveEntry }: Props) {
   const colorClass = categoryColors[event.category] || categoryColors.Other
   const badgeClass = categoryBadge[event.category] || categoryBadge.Other
 
   return (
-    <div className={`card border-l-4 ${colorClass}`}>
+    <div className={`card border-l-4 ${colorClass} ${!isActive ? 'opacity-50' : ''}`}>
       <div className="flex items-center justify-between mb-3">
-        <div>
-          <h3 className="font-semibold text-navy-900">{event.name}</h3>
-          <span className={badgeClass}>{event.category}</span>
+        <div className="flex items-center gap-2">
+          {isCoach && onToggleActive && (
+            <button
+              onClick={() => onToggleActive(event.id)}
+              className={`relative w-10 h-6 rounded-full transition-colors ${isActive ? 'bg-green-500' : 'bg-gray-300'}`}
+              title={isActive ? 'Deactivate event for this meet' : 'Activate event for this meet'}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isActive ? 'translate-x-4' : 'translate-x-0'}`} />
+            </button>
+          )}
+          <div>
+            <h3 className={`font-semibold ${isActive ? 'text-navy-900' : 'text-gray-400 line-through'}`}>{event.name}</h3>
+            <span className={badgeClass}>{event.category}</span>
+          </div>
         </div>
         <div className="flex items-center space-x-2">
           <span className="text-sm text-gray-500">
             {entries.length} entered
           </span>
-          {isCoach && onAssign && (
+          {isCoach && isActive && onAssign && (
             <button
               onClick={onAssign}
               className="p-2 rounded-lg bg-navy-800 text-white hover:bg-navy-700 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
