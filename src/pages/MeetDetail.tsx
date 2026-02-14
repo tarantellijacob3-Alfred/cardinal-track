@@ -331,20 +331,25 @@ export default function MeetDetail() {
   const { team, guestMode } = useTeam()
   const effectiveIsCoach = isCoach && !guestMode
 
-  // Per-meet event activation state
-  const [deactivatedEvents, setDeactivatedEvents] = useState<Set<string>>(new Set())
+  // Per-meet event activation state (use array for React-safe deps)
+  const [deactivatedList, setDeactivatedList] = useState<string[]>([])
+  const deactivatedEvents = useMemo(() => new Set(deactivatedList), [deactivatedList])
 
   // Fetch deactivated events for this meet
   useEffect(() => {
     if (!id) return
     async function fetchDeactivated() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('meet_event_status')
         .select('event_id')
         .eq('meet_id', id!)
         .eq('active', false)
+      if (error) {
+        console.error('Failed to fetch meet_event_status:', error)
+        return
+      }
       if (data) {
-        setDeactivatedEvents(new Set(data.map((d: { event_id: string }) => d.event_id)))
+        setDeactivatedList(data.map((d: { event_id: string }) => d.event_id).sort())
       }
     }
     fetchDeactivated()
@@ -356,26 +361,24 @@ export default function MeetDetail() {
 
     if (isCurrentlyDeactivated) {
       // Re-activate: delete the row
-      await supabase
+      const { error } = await supabase
         .from('meet_event_status')
         .delete()
         .eq('meet_id', id)
         .eq('event_id', eventId)
-      setDeactivatedEvents(prev => {
-        const next = new Set(prev)
-        next.delete(eventId)
-        return next
-      })
+      if (error) { console.error('Failed to reactivate event:', error); return }
+      setDeactivatedList(prev => prev.filter(eid => eid !== eventId))
     } else {
       // Deactivate: insert row with active=false
-      await supabase
+      const { error } = await supabase
         .from('meet_event_status')
         .upsert({
           meet_id: id,
           event_id: eventId,
           active: false,
         } as Record<string, unknown>, { onConflict: 'meet_id,event_id' })
-      setDeactivatedEvents(prev => new Set(prev).add(eventId))
+      if (error) { console.error('Failed to deactivate event:', error); return }
+      setDeactivatedList(prev => [...prev, eventId].sort())
     }
   }
 
@@ -473,13 +476,14 @@ export default function MeetDetail() {
     let evts = events
     // Non-coaches don't see deactivated events
     if (!effectiveIsCoach) {
-      evts = evts.filter(e => isEventActive(e.id))
+      evts = evts.filter(e => !deactivatedEvents.has(e.id))
     }
     if (activeCategory) {
       evts = evts.filter(e => e.category === activeCategory)
     }
     return evts
-  }, [events, effectiveIsCoach, deactivatedEvents, activeCategory])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events, effectiveIsCoach, deactivatedList, activeCategory])
 
   // Keep filteredEvents name for backward compat in renders
   const filteredEvents = visibleEvents
