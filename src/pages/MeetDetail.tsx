@@ -331,9 +331,8 @@ export default function MeetDetail() {
   const { team, guestMode } = useTeam()
   const effectiveIsCoach = isCoach && !guestMode
 
-  // Per-meet event activation state (use array for React-safe deps)
+  // Per-meet event activation state
   const [deactivatedList, setDeactivatedList] = useState<string[]>([])
-  const deactivatedEvents = useMemo(() => new Set(deactivatedList), [deactivatedList])
 
   // Fetch deactivated events for this meet
   useEffect(() => {
@@ -357,7 +356,7 @@ export default function MeetDetail() {
 
   const toggleEventActive = async (eventId: string) => {
     if (!id) return
-    const isCurrentlyDeactivated = deactivatedEvents.has(eventId)
+    const isCurrentlyDeactivated = deactivatedList.includes(eventId)
 
     if (isCurrentlyDeactivated) {
       // Re-activate: delete the row
@@ -382,7 +381,7 @@ export default function MeetDetail() {
     }
   }
 
-  const isEventActive = (eventId: string) => !deactivatedEvents.has(eventId)
+  const isEventActive = (eventId: string) => !deactivatedList.includes(eventId)
 
   // TFRRS state
   const [tfrrsLinks, setTfrrsLinks] = useState<TFRRSMeetLink[]>([])
@@ -476,7 +475,7 @@ export default function MeetDetail() {
     let evts = events
     // Non-coaches don't see deactivated events
     if (!effectiveIsCoach) {
-      evts = evts.filter(e => !deactivatedEvents.has(e.id))
+      evts = evts.filter(e => !deactivatedList.includes(e.id))
     }
     if (activeCategory) {
       evts = evts.filter(e => e.category === activeCategory)
