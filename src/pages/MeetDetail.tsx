@@ -450,6 +450,19 @@ export default function MeetDetail() {
     })
   }, [athletes, meet, genderFilter, meetGenderHint])
 
+  // Filter events: hide inactive ones for non-coaches, apply category filter
+  // NOTE: must be ABOVE early returns to keep hook count stable
+  const visibleEvents = useMemo(() => {
+    let evts = events
+    if (!effectiveIsCoach) {
+      evts = evts.filter(e => !deactivatedList.includes(e.id))
+    }
+    if (activeCategory) {
+      evts = evts.filter(e => e.category === activeCategory)
+    }
+    return evts
+  }, [events, effectiveIsCoach, deactivatedList, activeCategory])
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -470,19 +483,6 @@ export default function MeetDetail() {
   const meetDate = new Date(meet.date + 'T00:00:00')
 
   const categories = ['Field', 'Sprint', 'Distance', 'Hurdles', 'Relay', 'Other']
-  // Filter events: hide inactive ones for non-coaches, apply category filter
-  const visibleEvents = useMemo(() => {
-    let evts = events
-    // Non-coaches don't see deactivated events
-    if (!effectiveIsCoach) {
-      evts = evts.filter(e => !deactivatedList.includes(e.id))
-    }
-    if (activeCategory) {
-      evts = evts.filter(e => e.category === activeCategory)
-    }
-    return evts
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [events, effectiveIsCoach, deactivatedList, activeCategory])
 
   // Keep filteredEvents name for backward compat in renders
   const filteredEvents = visibleEvents
