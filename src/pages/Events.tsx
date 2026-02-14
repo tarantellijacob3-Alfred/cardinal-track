@@ -108,8 +108,13 @@ export default function Events() {
   const handleDelete = async (event: TrackEvent) => {
     if (!confirm(`Delete "${event.name}"? This will also remove all meet entries for this event.`)) return
 
-    const { error: err } = await supabase.from('events').delete().eq('id', event.id)
-    if (!err) refetch()
+    const { error: err, count } = await supabase.from('events').delete({ count: 'exact' }).eq('id', event.id)
+    if (err) {
+      alert('Failed to delete event: ' + err.message)
+    } else if (count === 0) {
+      alert('Could not delete event — permission denied.')
+    }
+    refetch()
   }
 
   const grouped = getEventsByCategory()

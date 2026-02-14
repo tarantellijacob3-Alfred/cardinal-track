@@ -398,19 +398,23 @@ export default function Settings() {
     if (!isTeamAdmin) return
     setUpdatingId(profileId)
     // Remove from team_members first
-    await supabase
+    const { count: tmCount } = await supabase
       .from('team_members')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('profile_id', profileId)
       .eq('team_id', teamId)
 
-    const { error } = await supabase
+    if (tmCount === 0) console.warn('team_members delete: 0 rows affected')
+
+    const { error, count } = await supabase
       .from('profiles')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', profileId)
 
     if (error) {
       alert('Failed to delete account: ' + error.message)
+    } else if (count === 0) {
+      alert('Could not delete account — permission denied.')
     } else {
       setConfirmDelete(null)
       setProfiles(prev => prev.filter(p => p.id !== profileId))

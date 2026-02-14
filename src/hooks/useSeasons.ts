@@ -68,14 +68,22 @@ export function useSeasons() {
   }
 
   async function deleteSeason(id: string) {
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from('seasons')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', id)
 
-    if (!error) {
-      setSeasons(prev => prev.filter(s => s.id !== id))
+    if (error) {
+      console.error('Failed to delete season:', error)
+      return { error }
     }
+
+    if (count === 0) {
+      console.warn('Delete season: 0 rows affected (RLS block?), id:', id)
+    }
+
+    setSeasons(prev => prev.filter(s => s.id !== id))
+    await fetch()
     return { error }
   }
 

@@ -51,14 +51,25 @@ export function useMeetEntries(meetId: string | undefined) {
   }
 
   async function removeEntry(entryId: string) {
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from('meet_entries')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', entryId)
 
-    if (!error) {
-      setEntries(prev => prev.filter(e => e.id !== entryId))
+    if (error) {
+      console.error('Failed to delete meet entry:', error)
+      return { error }
     }
+
+    if (count === 0) {
+      console.warn('Delete meet entry: 0 rows affected (RLS block?), id:', entryId)
+    }
+
+    // Always update local state optimistically, then verify
+    setEntries(prev => prev.filter(e => e.id !== entryId))
+
+    // Re-fetch to confirm
+    await fetch()
     return { error }
   }
 

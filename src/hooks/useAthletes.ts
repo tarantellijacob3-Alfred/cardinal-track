@@ -67,14 +67,23 @@ export function useAthletes() {
   }
 
   async function deleteAthlete(id: string) {
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from('athletes')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', id)
 
-    if (!error) {
-      setAthletes(prev => prev.filter(a => a.id !== id))
+    if (error) {
+      console.error('Failed to delete athlete:', error)
+      return { error }
     }
+
+    if (count === 0) {
+      console.warn('Delete athlete: 0 rows affected (RLS block?), id:', id)
+    }
+
+    // Update local state then re-fetch to confirm
+    setAthletes(prev => prev.filter(a => a.id !== id))
+    await fetch()
     return { error }
   }
 

@@ -55,15 +55,16 @@ export function useFavorites() {
   async function removeFavorite(athleteId: string) {
     if (!user) return { error: new Error('Not authenticated') }
 
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from('favorites')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('profile_id', user.id)
       .eq('athlete_id', athleteId)
 
     if (!error) {
       setFavorites(prev => prev.filter(f => f.athlete_id !== athleteId))
     }
+    if (count === 0) console.warn('Favorite delete: 0 rows affected')
     return { error }
   }
 

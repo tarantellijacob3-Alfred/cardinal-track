@@ -73,14 +73,22 @@ export function useMeets(seasonFilter?: string | null) {
   }
 
   async function deleteMeet(id: string) {
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from('meets')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', id)
 
-    if (!error) {
-      setMeets(prev => prev.filter(m => m.id !== id))
+    if (error) {
+      console.error('Failed to delete meet:', error)
+      return { error }
     }
+
+    if (count === 0) {
+      console.warn('Delete meet: 0 rows affected (RLS block?), id:', id)
+    }
+
+    setMeets(prev => prev.filter(m => m.id !== id))
+    await fetch()
     return { error }
   }
 
