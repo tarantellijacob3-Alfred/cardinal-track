@@ -23,7 +23,7 @@ export default function Register() {
       setError(err.message)
     } else {
       setSuccess(true)
-      setTimeout(() => navigate('/t/bishop-snyder'), 2000)
+      setTimeout(() => navigate('/'), 2000)
     }
     setLoading(false)
   }

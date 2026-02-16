@@ -37,10 +37,9 @@ export default function App() {
         <OfflineIndicator />
         <InstallPrompt />
         <Routes>
-          {/* Root → Bishop Snyder (since domain is bishop-snyder-track.vercel.app) */}
-          {/* When we get a TrackRoster domain, change back to <Landing /> */}
-          <Route path="/" element={<Navigate to="/t/bishop-snyder" replace />} />
-          {/* Landing page still accessible for new team signups */}
+          {/* Root → Landing page (team directory) */}
+          <Route path="/" element={<Landing />} />
+          {/* Keep /welcome as alias */}
           <Route path="/welcome" element={<Landing />} />
 
           {/* Global auth routes → redirect to landing with message to select a team */}

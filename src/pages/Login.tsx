@@ -19,8 +19,8 @@ export default function Login() {
     if (err) {
       setError(err.message)
     } else {
-      // After login, redirect to Bishop Snyder dashboard (or use profile.team_id in future)
-      navigate('/t/bishop-snyder')
+      // After login, redirect to landing (team directory) — user picks their team
+      navigate('/')
     }
     setLoading(false)
   }

@@ -200,8 +200,6 @@ export default function AthleteDetail() {
                     await updateAthlete(athlete.id, { tfrrs_url: tfrrsInput || null } as Record<string, unknown>)
                     setTfrrsLoading(false)
                     setShowTFRRSInput(false)
-                    // Reload page to reflect changes
-                    window.location.reload()
                   }}
                   disabled={tfrrsLoading}
                   className="btn-primary text-sm min-h-[36px]"

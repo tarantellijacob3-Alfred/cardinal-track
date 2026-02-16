@@ -8,14 +8,14 @@ export function useMeets(seasonFilter?: string | null) {
   const [loading, setLoading] = useState(true)
   const { teamId } = useTeam()
 
-  const fetch = useCallback(async () => {
+  const fetch = useCallback(async (silent = false) => {
     if (!teamId) {
       setMeets([])
       setLoading(false)
       return
     }
 
-    setLoading(true)
+    if (!silent) setLoading(true)
     let query = supabase
       .from('meets')
       .select('*')
@@ -32,7 +32,7 @@ export function useMeets(seasonFilter?: string | null) {
     if (!error && data) {
       setMeets(data as Meet[])
     }
-    setLoading(false)
+    if (!silent) setLoading(false)
   }, [teamId, seasonFilter])
 
   useEffect(() => {
@@ -88,7 +88,7 @@ export function useMeets(seasonFilter?: string | null) {
     }
 
     setMeets(prev => prev.filter(m => m.id !== id))
-    await fetch()
+    await fetch(true)
     return { error }
   }
 

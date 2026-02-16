@@ -8,14 +8,14 @@ export function useAthletes() {
   const [loading, setLoading] = useState(true)
   const { teamId } = useTeam()
 
-  const fetch = useCallback(async () => {
+  const fetch = useCallback(async (silent = false) => {
     if (!teamId) {
       setAthletes([])
       setLoading(false)
       return
     }
 
-    setLoading(true)
+    if (!silent) setLoading(true)
     const { data, error } = await supabase
       .from('athletes')
       .select('*')
@@ -26,7 +26,7 @@ export function useAthletes() {
     if (!error && data) {
       setAthletes(data as Athlete[])
     }
-    setLoading(false)
+    if (!silent) setLoading(false)
   }, [teamId])
 
   useEffect(() => {
@@ -81,9 +81,9 @@ export function useAthletes() {
       console.warn('Delete athlete: 0 rows affected (RLS block?), id:', id)
     }
 
-    // Update local state then re-fetch to confirm
+    // Update local state then silently re-fetch to confirm
     setAthletes(prev => prev.filter(a => a.id !== id))
-    await fetch()
+    await fetch(true)
     return { error }
   }
 
