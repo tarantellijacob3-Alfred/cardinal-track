@@ -694,12 +694,19 @@ function TFRRSMockup() {
 
 /* ── Carousel Component ── */
 const MOCKUP_COMPONENTS = [RosterMockup, MeetEntriesMockup, ParentFavesMockup, TFRRSMockup]
+// Duration for each slide's full animation cycle (ms)
+const SLIDE_DURATIONS = [
+  7400,   // RosterMockup: 1500+1200+1500+1200+2000
+  18900,  // MeetEntriesMockup: (2000+800+800+2000+500)×3 events + buffer
+  8000,   // ParentFavesMockup: full loop ~8s
+  9000,   // TFRRSMockup: 2000+1500+1500+1500+2500
+]
 
 function FeaturesCarousel() {
   const [active, setActive] = useState(0)
   const touchStart = useRef<number | null>(null)
   const touchEnd = useRef<number | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const len = FEATURE_LABELS.length
 
@@ -707,21 +714,26 @@ function FeaturesCarousel() {
     setActive(((idx % len) + len) % len)
   }, [len])
 
-  const resetAutoplay = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current)
-    intervalRef.current = setInterval(() => {
-      setActive(prev => (prev + 1) % len)
-    }, 8000)
+  const scheduleNext = useCallback((fromIdx: number) => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    const duration = SLIDE_DURATIONS[((fromIdx % len) + len) % len]
+    timerRef.current = setTimeout(() => {
+      setActive(prev => {
+        const next = (prev + 1) % len
+        scheduleNext(next)
+        return next
+      })
+    }, duration)
   }, [len])
 
   useEffect(() => {
-    resetAutoplay()
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-  }, [resetAutoplay])
+    scheduleNext(0)
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  }, [scheduleNext])
 
   const handleDotClick = (idx: number) => {
     goTo(idx)
-    resetAutoplay()
+    scheduleNext(idx)
   }
 
   const onTouchStart = (e: React.TouchEvent) => {
@@ -735,9 +747,9 @@ function FeaturesCarousel() {
     if (touchStart.current === null || touchEnd.current === null) return
     const diff = touchStart.current - touchEnd.current
     if (Math.abs(diff) > 50) {
-      if (diff > 0) goTo(active + 1)
-      else goTo(active - 1)
-      resetAutoplay()
+      const next = diff > 0 ? active + 1 : active - 1
+      goTo(next)
+      scheduleNext(next)
     }
     touchStart.current = null
     touchEnd.current = null
@@ -773,14 +785,14 @@ function FeaturesCarousel() {
           onTouchEnd={onTouchEnd}
         >
           <button
-            onClick={() => { goTo(active - 1); resetAutoplay() }}
+            onClick={() => { const n = active - 1; goTo(n); scheduleNext(n) }}
             className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-500 hover:text-navy-900 transition-colors z-10 hidden lg:flex"
             aria-label="Previous"
           >
             ←
           </button>
           <button
-            onClick={() => { goTo(active + 1); resetAutoplay() }}
+            onClick={() => { const n = active + 1; goTo(n); scheduleNext(n) }}
             className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-lg items-center justify-center text-gray-500 hover:text-navy-900 transition-colors z-10 hidden lg:flex"
             aria-label="Next"
           >
