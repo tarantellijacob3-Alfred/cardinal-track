@@ -96,7 +96,7 @@ export default function JoinTeam() {
         </div>
 
         {error && (
-          <div className="mb-6 p-3 bg-cardinal-50 border border-cardinal-200 rounded-lg text-cardinal-700 text-sm">
+          <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
             {error}
           </div>
         )}
@@ -113,7 +113,7 @@ export default function JoinTeam() {
                 <div
                   key={team.id}
                   className={`card flex items-center justify-between ${
-                    isCurrent ? 'ring-2 ring-gold-400 bg-gold-50' : ''
+                    isCurrent ? 'ring-2 ring-brand-400 bg-brand-50' : ''
                   }`}
                 >
                   <div className="flex items-center space-x-4">
@@ -134,7 +134,7 @@ export default function JoinTeam() {
                   </div>
 
                   {isCurrent ? (
-                    <span className="text-sm font-medium text-gold-600 bg-gold-100 px-3 py-1 rounded-full">
+                    <span className="text-sm font-medium text-brand-600 bg-brand-100 px-3 py-1 rounded-full">
                       Current
                     </span>
                   ) : (

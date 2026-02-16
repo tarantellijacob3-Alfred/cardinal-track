@@ -298,7 +298,7 @@ export default function BulkImportModal({ onImport, onClose }: Props) {
                         <td className="py-1.5 pr-3 text-gray-600">{row.grade ?? '—'}</td>
                         <td className="py-1.5 pr-3">
                           <span className={`text-xs px-1.5 py-0.5 rounded ${
-                            row.level === 'Varsity' ? 'bg-cardinal-100 text-cardinal-700' : 'bg-navy-100 text-navy-700'
+                            row.level === 'Varsity' ? 'bg-red-100 text-red-700' : 'bg-navy-100 text-navy-700'
                           }`}>
                             {row.level}
                           </span>
@@ -338,7 +338,7 @@ export default function BulkImportModal({ onImport, onClose }: Props) {
                     <div className="flex items-center gap-2 mt-1">
                       {row.grade && <span className="text-xs text-gray-500">Gr {row.grade}</span>}
                       <span className={`text-xs px-1.5 py-0.5 rounded ${
-                        row.level === 'Varsity' ? 'bg-cardinal-100 text-cardinal-700' : 'bg-navy-100 text-navy-700'
+                        row.level === 'Varsity' ? 'bg-red-100 text-red-700' : 'bg-navy-100 text-navy-700'
                       }`}>{row.level}</span>
                       <span className="text-xs text-gray-500">{row.gender}</span>
                     </div>

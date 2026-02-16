@@ -61,7 +61,7 @@ export default function Register() {
 
         <form onSubmit={handleSubmit} className="card space-y-4">
           {error && (
-            <div className="p-3 bg-cardinal-50 border border-cardinal-200 rounded-lg text-cardinal-700 text-sm">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
               {error}
             </div>
           )}
@@ -100,7 +100,7 @@ export default function Register() {
             />
           </div>
 
-          <p className="text-xs text-gold-700 bg-gold-50 p-2 rounded">
+          <p className="text-xs text-brand-700 bg-brand-50 p-2 rounded">
             ⚠️ Coach accounts require approval before you can make changes.
           </p>
 

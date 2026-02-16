@@ -418,7 +418,7 @@ export default function Roster() {
                         )}
                         <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
                           athlete.level === 'Varsity'
-                            ? 'bg-cardinal-100 text-cardinal-700'
+                            ? 'bg-red-100 text-red-700'
                             : 'bg-navy-100 text-navy-700'
                         }`}>
                           {athlete.level}
@@ -499,7 +499,7 @@ export default function Roster() {
                 }}
                 className={`w-full px-3 py-3 rounded-lg text-sm font-medium border transition-colors min-h-[44px] ${
                   settingsAthlete.level === 'JV'
-                    ? 'text-cardinal-700 hover:bg-cardinal-50 border-cardinal-200'
+                    ? 'text-red-700 hover:bg-red-50 border-red-200'
                     : 'text-navy-700 hover:bg-navy-50 border-navy-200'
                 }`}
               >

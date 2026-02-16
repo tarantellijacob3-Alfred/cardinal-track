@@ -35,9 +35,9 @@ export default function AthleteCard({ athlete, eventCount, compact = false, onCl
       {eventCount !== undefined && (
         <span className={`text-xs font-medium px-2 py-1 rounded-full ${
           eventCount >= 4
-            ? 'bg-cardinal-100 text-cardinal-700'
+            ? 'bg-red-100 text-red-700'
             : eventCount >= 3
-            ? 'bg-gold-100 text-gold-700'
+            ? 'bg-brand-100 text-brand-700'
             : 'bg-green-100 text-green-700'
         }`}>
           {eventCount}/4

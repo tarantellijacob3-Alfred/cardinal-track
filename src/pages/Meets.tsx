@@ -161,7 +161,7 @@ export default function Meets() {
               {effectiveIsCoach && (
                 <button
                   onClick={(e) => { e.preventDefault(); handleDelete(meet.id) }}
-                  className="absolute bottom-3 right-3 p-2 text-cardinal-500 hover:text-cardinal-700 hover:bg-cardinal-50 rounded-lg transition-all min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  className="absolute bottom-3 right-3 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all min-h-[44px] min-w-[44px] flex items-center justify-center"
                   title="Delete meet"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

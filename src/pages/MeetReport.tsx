@@ -156,15 +156,15 @@ export default function MeetReport() {
           {/* Summary stats */}
           <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="bg-navy-700/50 rounded-lg p-3 text-center">
-              <p className="text-2xl font-bold text-gold-400">{athletes.length}</p>
+              <p className="text-2xl font-bold text-brand-400">{athletes.length}</p>
               <p className="text-xs text-gray-300">Athletes</p>
             </div>
             <div className="bg-navy-700/50 rounded-lg p-3 text-center">
-              <p className="text-2xl font-bold text-gold-400">{entries.length}</p>
+              <p className="text-2xl font-bold text-brand-400">{entries.length}</p>
               <p className="text-xs text-gray-300">Total Entries</p>
             </div>
             <div className="bg-navy-700/50 rounded-lg p-3 text-center">
-              <p className="text-2xl font-bold text-gold-400">
+              <p className="text-2xl font-bold text-brand-400">
                 {new Set(entries.map(e => e.event_id)).size}
               </p>
               <p className="text-xs text-gray-300">Events</p>

@@ -128,7 +128,7 @@ export default function Dashboard() {
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-3xl sm:text-4xl font-bold">{teamName}</h1>
-            <p className="text-gold-400 mt-1 text-lg">{schoolLabel} Meet Manager</p>
+            <p className="text-brand-400 mt-1 text-lg">{schoolLabel} Meet Manager</p>
           </div>
           <div className="bg-white/10 rounded-lg px-1 py-1">
             <SeasonSelector />
@@ -149,7 +149,7 @@ export default function Dashboard() {
       </div>
 
       {user && !isCoach && profile?.role === 'coach' && !profile?.approved && !guestMode && (
-        <div className="card border border-gold-200 bg-gold-50 text-navy-900">
+        <div className="card border border-brand-200 bg-brand-50 text-navy-900">
           <p className="font-medium">Coach approval pending</p>
           <p className="text-sm text-gray-700 mt-1">
             You have view-only access until an admin approves your account.
@@ -294,7 +294,7 @@ export default function Dashboard() {
           <p className="text-sm text-gray-500">Total Meets</p>
         </div>
         <div className="card text-center">
-          <p className="text-3xl font-bold text-gold-600">{upcomingMeets.length}</p>
+          <p className="text-3xl font-bold text-brand-600">{upcomingMeets.length}</p>
           <p className="text-sm text-gray-500">Upcoming</p>
         </div>
         <div className="card text-center">

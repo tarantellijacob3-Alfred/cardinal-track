@@ -254,13 +254,13 @@ export default function TeamOnboarding() {
             {[1, 2, 3, 4].map(s => (
               <div key={s} className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                  s <= step ? 'bg-gold-400 text-navy-900' : 'bg-navy-700 text-gray-400'
+                  s <= step ? 'bg-brand-400 text-navy-900' : 'bg-navy-700 text-gray-400'
                 }`}>
                   {s < step ? '✓' : s}
                 </div>
                 {s < 4 && (
                   <div className={`w-16 sm:w-24 h-1 mx-1 rounded ${
-                    s < step ? 'bg-gold-400' : 'bg-navy-700'
+                    s < step ? 'bg-brand-400' : 'bg-navy-700'
                   }`} />
                 )}
               </div>
@@ -498,7 +498,7 @@ export default function TeamOnboarding() {
             <h2 className="text-2xl font-bold text-navy-900 mb-1">Your Plan</h2>
             <p className="text-gray-500 mb-6">Try TrackRoster free for {TRIAL_DAYS} days — no payment info needed</p>
 
-            <div className="border-2 border-gold-400 rounded-xl p-6 relative">
+            <div className="border-2 border-brand-400 rounded-xl p-6 relative">
               <div className="absolute -top-3 left-4 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">
                 {TRIAL_DAYS}-DAY FREE TRIAL
               </div>
@@ -557,7 +557,7 @@ export default function TeamOnboarding() {
         {/* ══════ Step 4: Launch ══════ */}
         {step === 4 && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl text-center">
-            <div className="w-16 h-16 bg-gold-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl">🚀</span>
             </div>
             <h2 className="text-2xl font-bold text-navy-900 mb-2">Ready to Launch!</h2>

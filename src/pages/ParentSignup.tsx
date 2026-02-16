@@ -92,7 +92,7 @@ export default function ParentSignup() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gold-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-brand-500 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">👨‍👩‍👧‍👦</span>
           </div>
           <h1 className="text-3xl font-bold text-navy-900">Join as Parent/Athlete</h1>
@@ -101,7 +101,7 @@ export default function ParentSignup() {
 
         <form onSubmit={handleSubmit} className="card space-y-4">
           {error && (
-            <div className="p-3 bg-cardinal-50 border border-cardinal-200 rounded-lg text-cardinal-700 text-sm">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
               {error}
             </div>
           )}

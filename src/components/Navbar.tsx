@@ -78,7 +78,7 @@ export default function Navbar() {
                 to={link.path}
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   isActive(link.path)
-                    ? 'bg-navy-700 text-gold-400'
+                    ? 'bg-navy-700 text-brand-400'
                     : 'text-gray-300 hover:bg-navy-800 hover:text-white'
                 }`}
               >
@@ -90,7 +90,7 @@ export default function Navbar() {
                 to={teamPath('/settings')}
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   isActive(teamPath('/settings'))
-                    ? 'bg-navy-700 text-gold-400'
+                    ? 'bg-navy-700 text-brand-400'
                     : 'text-gray-300 hover:bg-navy-800 hover:text-white'
                 }`}
               >
@@ -113,7 +113,7 @@ export default function Navbar() {
                 <span className="text-sm text-gray-300">
                   {profile?.full_name || user.email}
                   {effectiveIsCoach && (
-                    <span className="ml-2 text-xs bg-gold-500 text-navy-900 px-2 py-0.5 rounded-full font-medium">
+                    <span className="ml-2 text-xs bg-brand-500 text-navy-900 px-2 py-0.5 rounded-full font-medium">
                       Coach
                     </span>
                   )}
@@ -160,7 +160,7 @@ export default function Navbar() {
                 to={link.path}
                 className={`block px-3 py-3 rounded-md text-base font-medium min-h-[44px] ${
                   isActive(link.path)
-                    ? 'bg-navy-700 text-gold-400'
+                    ? 'bg-navy-700 text-brand-400'
                     : 'text-gray-300 hover:bg-navy-800 hover:text-white'
                 }`}
                 onClick={() => setMobileMenuOpen(false)}
@@ -173,7 +173,7 @@ export default function Navbar() {
                 to={teamPath('/settings')}
                 className={`block px-3 py-3 rounded-md text-base font-medium min-h-[44px] ${
                   isActive(teamPath('/settings'))
-                    ? 'bg-navy-700 text-gold-400'
+                    ? 'bg-navy-700 text-brand-400'
                     : 'text-gray-300 hover:bg-navy-800 hover:text-white'
                 }`}
                 onClick={() => setMobileMenuOpen(false)}

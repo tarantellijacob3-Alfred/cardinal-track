@@ -675,7 +675,7 @@ export default function Settings() {
                   <p className="text-sm text-gray-500 truncate">{coach.email}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs bg-gold-500 text-navy-900 px-2 py-0.5 rounded-full font-medium">
+                  <span className="text-xs bg-brand-500 text-navy-900 px-2 py-0.5 rounded-full font-medium">
                     Coach
                   </span>
                   {isTeamAdmin && (

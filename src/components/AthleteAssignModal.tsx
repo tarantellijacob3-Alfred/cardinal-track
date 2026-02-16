@@ -219,9 +219,9 @@ export default function AthleteAssignModal({
                       <div className="flex items-center space-x-2 flex-shrink-0">
                         <span className={`text-xs font-medium px-2 py-1 rounded-full ${
                           atLimit
-                            ? 'bg-cardinal-100 text-cardinal-700'
+                            ? 'bg-red-100 text-red-700'
                             : count >= 3
-                            ? 'bg-gold-100 text-gold-700'
+                            ? 'bg-brand-100 text-brand-700'
                             : 'bg-green-100 text-green-700'
                         }`}>
                           {count}/4

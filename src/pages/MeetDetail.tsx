@@ -246,7 +246,7 @@ function GridView({ athletes, events, entries, isCoach, relaysCountTowardLimit, 
                     {isCoach && (
                       <button
                         onClick={() => handleRemoveEntry(athlete.entryId)}
-                        className="text-cardinal-500 hover:text-cardinal-700 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        className="text-red-500 hover:text-red-700 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
                         title="Remove"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -643,15 +643,15 @@ export default function MeetDetail() {
           {/* Stats */}
           <div className="mt-4 grid grid-cols-3 gap-4">
             <div className="bg-navy-700/50 rounded-lg p-3 text-center">
-              <p className="text-2xl font-bold text-gold-400">{entries.length}</p>
+              <p className="text-2xl font-bold text-brand-400">{entries.length}</p>
               <p className="text-xs text-gray-300">Entries</p>
             </div>
             <div className="bg-navy-700/50 rounded-lg p-3 text-center">
-              <p className="text-2xl font-bold text-gold-400">{uniqueAthletes}</p>
+              <p className="text-2xl font-bold text-brand-400">{uniqueAthletes}</p>
               <p className="text-xs text-gray-300">Athletes</p>
             </div>
             <div className="bg-navy-700/50 rounded-lg p-3 text-center">
-              <p className="text-2xl font-bold text-gold-400">
+              <p className="text-2xl font-bold text-brand-400">
                 {events.filter(e => (effectiveIsCoach || isEventActive(e.id)) && getEntriesByEvent(e.id).length > 0).length}
               </p>
               <p className="text-xs text-gray-300">Active Events</p>
@@ -710,7 +710,7 @@ export default function MeetDetail() {
                     value={tfrrsInput}
                     onChange={e => setTfrrsInput(e.target.value)}
                     placeholder="Paste any results URL (TFRRS, MileSplit, etc.)..."
-                    className="flex-1 bg-navy-700 border border-navy-600 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-400 focus:ring-1 focus:ring-gold-400 focus:border-gold-400"
+                    className="flex-1 bg-navy-700 border border-navy-600 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-400 focus:ring-1 focus:ring-brand-400 focus:border-brand-400"
                   />
                   <button
                     onClick={handleAddTFRRS}
@@ -734,7 +734,7 @@ export default function MeetDetail() {
 
       {/* Coach settings bar */}
       {effectiveIsCoach && (
-        <div className="no-print flex flex-wrap items-center justify-between gap-3 bg-gold-50 rounded-lg p-3 border border-gold-200">
+        <div className="no-print flex flex-wrap items-center justify-between gap-3 bg-brand-50 rounded-lg p-3 border border-brand-200">
           <label className="flex items-center space-x-2 text-sm min-h-[44px]">
             <input
               type="checkbox"
@@ -746,7 +746,7 @@ export default function MeetDetail() {
           </label>
 
           {/* View mode toggle */}
-          <div className="flex rounded-lg overflow-hidden border border-gold-300">
+          <div className="flex rounded-lg overflow-hidden border border-brand-300">
             <button
               onClick={() => setViewMode('card')}
               className={`px-3 py-2 text-sm font-medium transition-colors min-h-[44px] ${
