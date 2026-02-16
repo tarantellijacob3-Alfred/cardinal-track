@@ -13,7 +13,7 @@ export default defineConfig({
         name: 'TrackRoster — Track & Field Team Manager',
         short_name: 'TrackRoster',
         description: 'Manage your track & field team — roster, meets, results, and more.',
-        theme_color: '#102a43',
+        theme_color: '#0f172a',
         background_color: '#f9fafb',
         display: 'standalone',
         orientation: 'portrait-primary',
