@@ -99,26 +99,25 @@ export function useMeet(id: string | undefined) {
   const [meet, setMeet] = useState<Meet | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const fetchMeet = useCallback(async () => {
     if (!id) {
       setLoading(false)
       return
     }
+    setLoading(true)
+    const { data } = await supabase
+      .from('meets')
+      .select('*')
+      .eq('id', id)
+      .single()
 
-    async function fetchMeet() {
-      setLoading(true)
-      const { data } = await supabase
-        .from('meets')
-        .select('*')
-        .eq('id', id!)
-        .single()
-
-      setMeet(data as Meet | null)
-      setLoading(false)
-    }
-
-    fetchMeet()
+    setMeet(data as Meet | null)
+    setLoading(false)
   }, [id])
 
-  return { meet, loading }
+  useEffect(() => {
+    fetchMeet()
+  }, [fetchMeet])
+
+  return { meet, loading, refetch: fetchMeet }
 }

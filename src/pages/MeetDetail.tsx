@@ -10,6 +10,7 @@ import EventCard from '../components/EventCard'
 import AthleteAssignModal from '../components/AthleteAssignModal'
 import PrintMeetSheet from '../components/PrintMeetSheet'
 import TFRRSLink from '../components/TFRRSLink'
+import EditMeetModal from '../components/EditMeetModal'
 import { searchTFRRSMeet, isValidResultsUrl } from '../lib/tfrrs'
 import type { TrackEvent, Meet, MeetEntryWithDetails, TFRRSMeetLink } from '../types/database'
 import { supabase } from '../lib/supabase'
@@ -311,7 +312,7 @@ function GridView({ athletes, events, entries, isCoach, relaysCountTowardLimit, 
 export default function MeetDetail() {
   const { id } = useParams<{ id: string }>()
   const { isCoach } = useAuth()
-  const { meet, loading: meetLoading } = useMeet(id)
+  const { meet, loading: meetLoading, refetch: refetchMeet } = useMeet(id)
   const { meets } = useMeets()
   const { events, loading: eventsLoading } = useEvents()
   const { athletes } = useAthletes()
@@ -327,6 +328,7 @@ export default function MeetDetail() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('card')
   const [showCopyModal, setShowCopyModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [genderFilter, setGenderFilter] = useState<'all' | 'Boys' | 'Girls'>('all')
   const { team, guestMode } = useTeam()
   const effectiveIsCoach = isCoach && !guestMode
@@ -612,16 +614,28 @@ export default function MeetDetail() {
 
             <div className="flex flex-wrap gap-2">
               {effectiveIsCoach && (
-                <button
-                  onClick={() => setShowCopyModal(true)}
-                  className="btn-ghost text-white hover:bg-navy-700 text-sm min-h-[44px]"
-                >
-                  <svg className="w-4 h-4 mr-1.5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  Copy from Meet
-                </button>
+                <>
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    className="btn-ghost text-white hover:bg-navy-700 text-sm min-h-[44px]"
+                  >
+                    <svg className="w-4 h-4 mr-1.5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => setShowCopyModal(true)}
+                    className="btn-ghost text-white hover:bg-navy-700 text-sm min-h-[44px]"
+                  >
+                    <svg className="w-4 h-4 mr-1.5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy from Meet
+                  </button>
+                </>
               )}
               <Link to={teamPath(`/meets/${id}/report`)} className="btn-ghost text-white hover:bg-navy-700 text-sm min-h-[44px] inline-flex items-center">
                 <svg className="w-4 h-4 mr-1.5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -918,6 +932,15 @@ export default function MeetDetail() {
           entries={entries}
           onCopy={handleCopyFromMeet}
           onClose={() => setShowCopyModal(false)}
+        />
+      )}
+
+      {/* Edit meet modal */}
+      {showEditModal && meet && (
+        <EditMeetModal
+          meet={meet}
+          onSaved={refetchMeet}
+          onClose={() => setShowEditModal(false)}
         />
       )}
     </div>
