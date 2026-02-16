@@ -16,6 +16,7 @@ export default function EditMeetModal({ meet, onSaved, onClose }: Props) {
   const [notes, setNotes] = useState(meet.notes || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [notesFullscreen, setNotesFullscreen] = useState(false)
 
   // Lock body scroll on mobile when modal is open
   useEffect(() => {
@@ -53,6 +54,39 @@ export default function EditMeetModal({ meet, onSaved, onClose }: Props) {
 
     onSaved()
     onClose()
+  }
+
+  // Fullscreen notes editor
+  if (notesFullscreen) {
+    return (
+      <div className="fixed inset-0 bg-white z-50 flex flex-col">
+        <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0">
+          <button
+            onClick={() => setNotesFullscreen(false)}
+            className="text-brand-600 font-medium text-sm min-h-[44px] flex items-center"
+          >
+            <svg className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
+          <h3 className="font-semibold text-navy-900">Notes</h3>
+          <button
+            onClick={() => setNotesFullscreen(false)}
+            className="text-brand-600 font-semibold text-sm min-h-[44px] flex items-center"
+          >
+            Done
+          </button>
+        </div>
+        <textarea
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          className="flex-1 p-4 text-base text-navy-900 placeholder-gray-400 resize-none focus:outline-none"
+          placeholder="Meet notes..."
+          autoFocus
+        />
+      </div>
+    )
   }
 
   return (
@@ -137,13 +171,17 @@ export default function EditMeetModal({ meet, onSaved, onClose }: Props) {
 
           <div>
             <label className="block text-sm font-medium text-navy-800 mb-1.5">Notes</label>
-            <textarea
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              className="input text-base min-h-[100px] resize-y"
-              placeholder="Optional notes about this meet..."
-              rows={4}
-            />
+            <button
+              type="button"
+              onClick={() => setNotesFullscreen(true)}
+              className="w-full text-left input text-base min-h-[80px] cursor-pointer hover:border-brand-300 transition-colors"
+            >
+              {notes ? (
+                <span className="text-navy-900 line-clamp-3 whitespace-pre-wrap">{notes}</span>
+              ) : (
+                <span className="text-gray-400">Tap to edit notes...</span>
+              )}
+            </button>
           </div>
         </div>
 

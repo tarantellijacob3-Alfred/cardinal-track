@@ -82,9 +82,9 @@ export default function MeetCard({ meet, onDelete }: Props) {
             </svg>
             Notes
           </button>
-          <div className={`overflow-hidden transition-all duration-200 ${expanded ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
-            <p className="text-sm text-gray-500 whitespace-pre-wrap">{meet.notes}</p>
-          </div>
+          {expanded && (
+            <p className="text-sm text-gray-500 whitespace-pre-wrap mt-2">{meet.notes}</p>
+          )}
         </div>
       )}
     </div>
