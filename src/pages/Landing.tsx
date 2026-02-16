@@ -386,64 +386,139 @@ function RosterMockup() {
 
 /* ── Animated Meet Entries Mockup ── */
 function MeetEntriesMockup() {
+  const [activeTab, setActiveTab] = useState(0)
   const [step, setStep] = useState(0)
 
+  const events = [
+    { name: '100m', category: 'sprint' },
+    { name: 'Pole Vault', category: 'field' },
+    { name: '4x400', category: 'relay' },
+  ]
+
+  const eventData: Record<number, { assigned: string[]; available: string[] }> = {
+    0: { assigned: ['Johnson, S.', 'Williams, M.'], available: ['Chen, A.', 'Davis, K.', 'Rodriguez, E.'] },
+    1: { assigned: ['Thompson, J.'], available: ['Rodriguez, E.', 'Chen, A.'] },
+    2: { assigned: ['Johnson, S.', 'Williams, M.', 'Chen, A.'], available: ['Davis, K.', 'Thompson, J.'] },
+  }
+
+  // Animation: step 0 = idle, step 1 = highlight available athlete, step 2 = move to assigned, step 3 = pause, step 4 = reset
   useEffect(() => {
-    const sequence = [2000, 1200, 1200, 1200, 2000]
+    const sequence = [2000, 800, 800, 2000, 500]
     let i = 0
-    const timerRef = { current: null as ReturnType<typeof setTimeout> | null }
+    let timer: ReturnType<typeof setTimeout> | null = null
     function tick() {
-      timerRef.current = setTimeout(() => {
-        setStep(s => (s + 1) % 5)
+      timer = setTimeout(() => {
+        setStep(s => {
+          if (s === 4) {
+            setActiveTab(t => (t + 1) % 3)
+            return 0
+          }
+          return s + 1
+        })
         i = (i + 1) % sequence.length
         tick()
       }, sequence[i])
     }
     tick()
-    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+    return () => { if (timer) clearTimeout(timer) }
   }, [])
 
-  const events = [
-    { event: '100m', base: ['S. Johnson', 'M. Williams'], added: 'A. Chen' },
-    { event: 'Pole Vault', base: ['J. Thompson'], added: 'E. Rodriguez' },
-    { event: '4x400 Relay', base: ['Johnson', 'Williams', 'Chen'], added: 'Davis' },
-  ]
+  const data = eventData[activeTab]
+  const movingAthlete = data.available[0]
+  const isHighlighted = step >= 1 && step < 4
+  const isMoved = step >= 2 && step < 4
 
-  // step 0: base entries, step 1-3: add athlete to each event, step 4: reset
+  const categoryColors: Record<string, string> = {
+    sprint: 'bg-blue-500 text-white',
+    field: 'bg-green-500 text-white',
+    relay: 'bg-purple-500 text-white',
+  }
+  const categoryInactive: Record<string, string> = {
+    sprint: 'bg-blue-100 text-blue-700',
+    field: 'bg-green-100 text-green-700',
+    relay: 'bg-purple-100 text-purple-700',
+  }
+
   return (
     <div className="bg-gray-50 rounded-xl p-4 shadow-inner">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-navy-900 text-sm">District Championship</h3>
         <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Feb 22</span>
       </div>
-      {events.map((e, i) => {
-        const showAdded = step > i && step < 5
-        const allAthletes = showAdded ? [...e.base, e.added] : e.base
-        const maxCount = e.event === '4x400 Relay' ? 4 : 4
 
-        return (
-          <div key={i} className={`py-2.5 ${i > 0 ? 'border-t border-gray-200' : ''}`}>
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-navy-900">{e.event}</p>
-              <span className={`text-xs transition-all duration-300 ${
-                showAdded ? 'text-green-600 font-medium' : 'text-gray-400'
-              }`}>{allAthletes.length}/{maxCount}</span>
+      {/* Event tabs */}
+      <div className="flex gap-1.5 mb-3 overflow-x-auto">
+        {events.map((e, i) => (
+          <button
+            key={i}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+              i === activeTab ? categoryColors[e.category] : categoryInactive[e.category]
+            }`}
+          >
+            <div>{e.name}</div>
+            <div className="text-[10px] opacity-75">
+              {i === activeTab
+                ? `${(isMoved ? data.assigned.length + 1 : data.assigned.length)} entered`
+                : `${eventData[i].assigned.length} entered`
+              }
             </div>
-            <div className="flex flex-wrap gap-1.5 mt-1.5">
-              {e.base.map((a, j) => (
-                <span key={j} className="text-xs bg-navy-100 text-navy-700 px-2 py-0.5 rounded-full">{a}</span>
-              ))}
-              <span className={`text-xs px-2 py-0.5 rounded-full transition-all duration-500 ${
-                showAdded
-                  ? 'bg-green-100 text-green-700 opacity-100 scale-100'
-                  : 'bg-green-100 text-green-700 opacity-0 scale-75 w-0 px-0 overflow-hidden'
-              }`}>
-                {e.added}
-              </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Two-column layout */}
+      <div className="grid grid-cols-2 gap-2">
+        {/* Assigned */}
+        <div>
+          <p className="text-[10px] font-semibold text-navy-700 uppercase tracking-wider mb-1.5">
+            {events[activeTab].name} ({isMoved ? data.assigned.length + 1 : data.assigned.length})
+          </p>
+          <div className="space-y-1">
+            {data.assigned.map((a, i) => (
+              <div key={i} className="flex items-center gap-1.5 py-1 px-2 bg-white rounded-md text-xs">
+                <span className="text-gray-400 text-[10px] w-3">{i + 1}.</span>
+                <span className="font-medium text-navy-800">{a}</span>
+              </div>
+            ))}
+            {/* Animated new entry */}
+            <div className={`flex items-center gap-1.5 py-1 px-2 rounded-md text-xs transition-all duration-500 ${
+              isMoved ? 'bg-green-50 opacity-100 max-h-8 border border-green-200' : 'opacity-0 max-h-0 overflow-hidden'
+            }`}>
+              <span className="text-gray-400 text-[10px] w-3">{data.assigned.length + 1}.</span>
+              <span className="font-medium text-green-700">{movingAthlete}</span>
             </div>
           </div>
-        )
-      })}
+        </div>
+
+        {/* Available */}
+        <div>
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Available</p>
+          <div className="space-y-1">
+            {data.available.map((a, i) => {
+              const isTarget = i === 0
+              return (
+                <div
+                  key={i}
+                  className={`flex items-center gap-1.5 py-1 px-2 rounded-md text-xs transition-all duration-300 ${
+                    isTarget && isMoved
+                      ? 'opacity-0 max-h-0 overflow-hidden'
+                      : isTarget && isHighlighted
+                        ? 'bg-brand-50 border border-brand-300 ring-1 ring-brand-200'
+                        : 'bg-white'
+                  }`}
+                >
+                  <span className={`font-medium ${isTarget && isHighlighted ? 'text-brand-700' : 'text-navy-700'}`}>{a}</span>
+                  <svg className={`w-3 h-3 ml-auto transition-all duration-300 ${
+                    isTarget && isHighlighted ? 'text-brand-500 opacity-100' : 'text-gray-300 opacity-0'
+                  }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
