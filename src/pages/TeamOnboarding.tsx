@@ -235,12 +235,12 @@ export default function TeamOnboarding() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-navy-950 via-navy-900 to-navy-800">
       {/* Nav */}
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center sm:justify-between gap-2">
         <Link to="/welcome" className="flex items-center space-x-3">
           <img src="/trackroster-logo.svg" alt="TrackRoster" className="w-10 h-10" />
           <span className="text-white font-bold text-xl">TrackRoster</span>
         </Link>
-        <Link to="/login" className="text-gray-300 hover:text-white text-sm font-medium">
+        <Link to="/login" className="text-gray-300 hover:text-white text-xs sm:text-sm font-medium whitespace-nowrap">
           Already have an account? Sign In
         </Link>
       </nav>
