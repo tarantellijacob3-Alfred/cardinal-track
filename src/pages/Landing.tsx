@@ -67,7 +67,7 @@ export default function Landing() {
             {user ? (
               <Link
                 to={userTeamSlug ? `/t/${userTeamSlug}` : '#directory'}
-                className="bg-white text-navy-900 px-5 py-2 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors"
+                className="bg-brand-500 text-white px-5 py-2 rounded-lg font-semibold text-sm hover:bg-brand-600 transition-colors"
               >
                 {userTeamSlug ? 'My Dashboard' : 'Find Your Team'}
               </Link>
@@ -81,7 +81,7 @@ export default function Landing() {
                 </a>
                 <Link
                   to="/onboard"
-                  className="bg-white text-navy-900 px-5 py-2 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors"
+                  className="bg-brand-500 text-white px-5 py-2 rounded-lg font-semibold text-sm hover:bg-brand-600 transition-colors"
                 >
                   Get Started
                 </Link>
@@ -93,17 +93,17 @@ export default function Landing() {
 
       {/* Flash message */}
       {message && (
-        <div className="bg-blue-600 text-white text-center text-sm py-2 px-4">
+        <div className="bg-brand-600 text-white text-center text-sm py-2 px-4">
           {message}
         </div>
       )}
 
       {/* ═══ Hero ═══ */}
-      <div className="bg-gradient-to-b from-navy-950 via-navy-900 to-indigo-950 text-white">
+      <div className="bg-gradient-to-b from-navy-950 via-navy-900 to-navy-800 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20 sm:pt-24 sm:pb-28 text-center">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight">
             Your track team's{' '}
-            <span className="inline-block">🏃 home base.</span>
+            <span className="text-brand-400">home base.</span>
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
             Manage rosters, assign meet entries, and keep coaches, athletes, and parents all on the same page.
@@ -111,7 +111,7 @@ export default function Landing() {
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center max-w-md sm:max-w-none mx-auto">
             <Link
               to="/onboard"
-              className="bg-white text-navy-900 px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition-colors shadow-lg shadow-black/20"
+              className="bg-brand-500 text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-brand-600 transition-colors shadow-lg shadow-black/20"
             >
               GET STARTED
             </Link>
@@ -153,7 +153,7 @@ export default function Landing() {
       <FeaturesCarousel />
 
       {/* ═══ CTA Banner ═══ */}
-      <div className="bg-gradient-to-r from-navy-900 to-indigo-950 py-16 sm:py-20">
+      <div className="bg-gradient-to-r from-navy-900 to-navy-800 py-16 sm:py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight">
             Ready to ditch the spreadsheets?
@@ -164,7 +164,7 @@ export default function Landing() {
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               to="/onboard"
-              className="bg-white text-navy-900 px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition-colors shadow-lg"
+              className="bg-brand-500 text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-brand-600 transition-colors shadow-lg"
             >
               Start Your Team — Free
             </Link>
@@ -201,7 +201,7 @@ export default function Landing() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search teams..."
-                className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-navy-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-navy-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent shadow-sm"
               />
               {search && (
                 <button
@@ -237,7 +237,7 @@ export default function Landing() {
                 <Link
                   key={team.id}
                   to={`/t/${team.slug}`}
-                  className="group bg-white border border-gray-200 rounded-xl p-6 hover:border-blue-500 hover:shadow-lg transition-all duration-200"
+                  className="group bg-white border border-gray-200 rounded-xl p-6 hover:border-brand-400 hover:shadow-lg transition-all duration-200"
                 >
                   <div className="flex items-center space-x-4">
                     <div
@@ -255,13 +255,13 @@ export default function Landing() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-navy-900 font-semibold text-lg group-hover:text-blue-600 transition-colors truncate">
+                      <h3 className="text-navy-900 font-semibold text-lg group-hover:text-brand-600 transition-colors truncate">
                         {team.name}
                       </h3>
                       <p className="text-gray-500 text-sm truncate">{team.school_name}</p>
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center text-sm text-gray-400 group-hover:text-blue-600 transition-colors">
+                  <div className="mt-4 flex items-center text-sm text-gray-400 group-hover:text-brand-600 transition-colors">
                     <span>View team →</span>
                   </div>
                 </Link>
@@ -288,9 +288,9 @@ export default function Landing() {
    ═══════════════════════════════════════════ */
 
 const FEATURE_LABELS = [
-  { label: 'Manage rosters', color: 'bg-blue-100 text-blue-700' },
+  { label: 'Manage rosters', color: 'bg-brand-100 text-brand-700' },
   { label: 'Assign meet entries', color: 'bg-green-100 text-green-700' },
-  { label: 'Track parent favorites', color: 'bg-amber-100 text-amber-700' },
+  { label: 'Track parent favorites', color: 'bg-brand-100 text-brand-700' },
   { label: 'TFRRS integration', color: 'bg-purple-100 text-purple-700' },
 ]
 
@@ -330,17 +330,17 @@ function RosterMockup() {
     <div className="bg-gray-50 rounded-xl p-4 shadow-inner">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-navy-900 text-sm">Roster</h3>
-        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full transition-all duration-300">
+        <span className="text-xs bg-brand-100 text-brand-700 px-2 py-1 rounded-full transition-all duration-300">
           {count} athletes
         </span>
       </div>
 
       {/* Add athlete form */}
       <div className={`overflow-hidden transition-all duration-500 ${showForm ? 'max-h-12 opacity-100 mb-2' : 'max-h-0 opacity-0'}`}>
-        <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
-          <span className="text-xs text-blue-700">+ Adding:</span>
-          <span className="text-xs font-semibold text-blue-900">Jake Thompson</span>
-          <span className="ml-auto text-xs bg-blue-500 text-white px-2 py-0.5 rounded">Save</span>
+        <div className="flex items-center gap-2 bg-brand-50 border border-brand-200 rounded-lg px-3 py-2">
+          <span className="text-xs text-brand-700">+ Adding:</span>
+          <span className="text-xs font-semibold text-brand-900">Jake Thompson</span>
+          <span className="ml-auto text-xs bg-brand-500 text-white px-2 py-0.5 rounded">Save</span>
         </div>
       </div>
 
@@ -358,7 +358,7 @@ function RosterMockup() {
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium transition-all duration-500 ${
             i === 1 && promoted
               ? 'bg-purple-100 text-purple-700'
-              : a.level === 'Varsity' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+              : a.level === 'Varsity' ? 'bg-purple-100 text-purple-700' : 'bg-brand-100 text-brand-700'
           }`}>
             {i === 1 && promoted ? 'Varsity' : a.level}
           </span>
@@ -377,7 +377,7 @@ function RosterMockup() {
               <p className="text-xs text-gray-500">Grade {newAthlete.grade} · {newAthlete.gender}</p>
             </div>
           </div>
-          <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">JV</span>
+          <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-brand-100 text-brand-700">JV</span>
         </div>
       </div>
     </div>
@@ -477,7 +477,7 @@ function ParentFavesMockup() {
 
       {/* Search bar mockup */}
       <div className="bg-white border border-gray-200 rounded-lg px-3 py-2 mb-3 flex items-center">
-        <span className="text-gray-400 text-xs mr-2">🔍</span>
+        <svg className="h-3 w-3 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
         <span className="text-xs text-navy-900">Jake Thompson</span>
         <span className="animate-pulse text-navy-900 text-xs">|</span>
       </div>
@@ -495,14 +495,14 @@ function ParentFavesMockup() {
             </div>
           </div>
           {/* Star button */}
-          <button className={`text-xl transition-all duration-500 ${starred ? 'scale-125 text-amber-400' : 'scale-100 text-gray-300'}`}>
-            {starred ? '★' : '☆'}
+          <button className={`transition-all duration-500 ${starred ? 'scale-125' : 'scale-100'}`}>
+            <svg className={`w-5 h-5 ${starred ? 'text-brand-500 fill-brand-500' : 'text-gray-300'}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} fill={starred ? 'currentColor' : 'none'}><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
           </button>
         </div>
 
         {/* Expand with meet details */}
         <div className={`overflow-hidden transition-all duration-700 ${showDetails ? 'max-h-24 opacity-100 mt-2 pt-2 border-t border-gray-100' : 'max-h-0 opacity-0'}`}>
-          <p className="text-xs text-gray-500 mb-1.5">Now on your dashboard ⭐</p>
+          <p className="text-xs text-gray-500 mb-1.5">Now on your dashboard</p>
           <div className="bg-gray-50 rounded-lg p-2">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium text-navy-800">District Championship</p>
@@ -713,7 +713,7 @@ function FeaturesCarousel() {
           </button>
 
           <div className="max-w-md mx-auto">
-            <div key={active} className="bg-gradient-to-br from-navy-900 to-indigo-950 rounded-2xl p-5 sm:p-6 shadow-2xl animate-fadeIn">
+            <div key={active} className="bg-gradient-to-br from-navy-900 to-navy-800 rounded-2xl p-5 sm:p-6 shadow-2xl animate-fadeIn">
               <ActiveMockup />
             </div>
           </div>
@@ -726,7 +726,7 @@ function FeaturesCarousel() {
               key={i}
               onClick={() => handleDotClick(i)}
               className={`rounded-full transition-all duration-300 ${
-                i === active ? 'w-8 h-3 bg-navy-900' : 'w-3 h-3 bg-gray-300 hover:bg-gray-400'
+                i === active ? 'w-8 h-3 bg-brand-500' : 'w-3 h-3 bg-gray-300 hover:bg-gray-400'
               }`}
               aria-label={`Feature ${i + 1}`}
             />
