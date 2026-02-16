@@ -50,7 +50,7 @@ export default function MeetCard({ meet }: Props) {
         </div>
       </div>
       {meet.notes && (
-        <p className="mt-2 text-sm text-gray-500 border-t pt-2">{meet.notes}</p>
+        <p className="mt-2 text-sm text-gray-500 border-t pt-2 line-clamp-2">{meet.notes}</p>
       )}
     </Link>
   )

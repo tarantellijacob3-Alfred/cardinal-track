@@ -659,7 +659,10 @@ export default function MeetDetail() {
           </div>
 
           {meet.notes && (
-            <p className="mt-3 text-sm text-gray-300 border-t border-navy-700 pt-3">{meet.notes}</p>
+            <details className="mt-3 border-t border-navy-700 pt-3">
+              <summary className="text-sm text-gray-400 cursor-pointer hover:text-gray-200 transition-colors">Notes</summary>
+              <p className="mt-2 text-sm text-gray-300 whitespace-pre-wrap">{meet.notes}</p>
+            </details>
           )}
 
           {/* Results Links */}
