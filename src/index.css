@@ -102,3 +102,8 @@
 .print-only {
   display: none;
 }
+
+/* Safe area for bottom of modals on iOS */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}

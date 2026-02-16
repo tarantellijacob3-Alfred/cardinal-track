@@ -587,7 +587,7 @@ export default function MeetDetail() {
           ← Back to Meets
         </Link>
 
-        <div className="bg-gradient-to-br from-navy-800 to-navy-950 rounded-2xl p-6 text-white">
+        <div className="bg-gradient-to-br from-navy-800 to-navy-950 rounded-2xl p-6 text-white overflow-visible">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold">{meet.name}</h1>
