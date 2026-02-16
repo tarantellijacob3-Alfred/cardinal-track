@@ -237,9 +237,7 @@ export default function TeamOnboarding() {
       {/* Nav */}
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
         <Link to="/welcome" className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-            <span className="text-white font-bold text-lg">TR</span>
-          </div>
+          <img src="/trackroster-logo.svg" alt="TrackRoster" className="w-10 h-10" />
           <span className="text-white font-bold text-xl">TrackRoster</span>
         </Link>
         <Link to="/login" className="text-gray-300 hover:text-white text-sm font-medium">
