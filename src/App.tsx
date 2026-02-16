@@ -26,6 +26,7 @@ import AdminUsers from './pages/admin/AdminUsers'
 import AdminSeasons from './pages/admin/AdminSeasons'
 import InstallPrompt from './components/InstallPrompt'
 import OfflineIndicator from './components/OfflineIndicator'
+import ScrollToTop from './components/ScrollToTop'
 
 /** Default team slug for backward-compatible redirects */
 const DEFAULT_SLUG = 'bishop-snyder'
@@ -34,6 +35,7 @@ export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
+        <ScrollToTop />
         <OfflineIndicator />
         <InstallPrompt />
         <Routes>
