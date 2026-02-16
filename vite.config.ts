@@ -40,9 +40,14 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Force new SW to activate immediately
+        skipWaiting: true,
+        clientsClaim: true,
         // Cache page navigations (SPA fallback)
         navigateFallback: 'index.html',
         navigateFallbackAllowlist: [/^(?!\/__).*/],
+        // Clean old precaches on update
+        cleanupOutdatedCaches: true,
         // Runtime caching for Supabase API calls
         runtimeCaching: [
           {
