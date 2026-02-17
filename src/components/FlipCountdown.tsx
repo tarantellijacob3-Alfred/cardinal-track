@@ -50,27 +50,33 @@ function FlipCard({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex flex-col items-center">
       <div className="relative w-[52px] h-[68px] sm:w-[72px] sm:h-[88px]" style={{ perspective: '200px' }}>
-        {/* Static top half (new value) */}
-        <div className="absolute inset-0 top-0 h-1/2 overflow-hidden rounded-t-lg bg-navy-800 border border-navy-700">
+        {/* ── Top half: normal number ── */}
+        <div className="absolute inset-x-0 top-0 h-1/2 overflow-hidden rounded-t-lg bg-navy-800 border border-navy-700">
           <div className="absolute inset-0 flex items-end justify-center pb-[1px]">
             <span className="text-2xl sm:text-4xl font-bold text-white font-mono tabular-nums">{display}</span>
           </div>
         </div>
 
-        {/* Static bottom half (old value while flipping, new when done) */}
-        <div className="absolute inset-0 top-1/2 h-1/2 overflow-hidden rounded-b-lg bg-navy-900 border border-navy-700 border-t-0">
-          <div className="absolute inset-0 flex items-start justify-center pt-[1px]">
-            <span className="text-2xl sm:text-4xl font-bold text-gray-200 font-mono tabular-nums">{flipping ? prev : display}</span>
+        {/* ── Bottom half: mirrored/flipped number + blur ── */}
+        <div className="absolute inset-x-0 top-1/2 h-1/2 overflow-hidden rounded-b-lg bg-navy-900 border border-navy-700 border-t-0">
+          <div className="absolute inset-0 flex items-start justify-center pt-[1px]" style={{ transform: 'scaleY(-1)' }}>
+            <span className="text-2xl sm:text-4xl font-bold text-gray-400 font-mono tabular-nums" style={{ filter: 'blur(0.8px)' }}>
+              {flipping ? prev : display}
+            </span>
           </div>
+          {/* Gradient fade overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-navy-900/30 to-navy-900/80 pointer-events-none" />
         </div>
 
-        {/* Center line */}
-        <div className="absolute left-0 right-0 top-1/2 h-px bg-black/30 z-10" />
+        {/* Center line / hinge */}
+        <div className="absolute left-1 right-1 top-1/2 h-px bg-black/40 z-10" />
+        <div className="absolute left-0 top-1/2 w-1.5 h-1.5 -mt-[3px] rounded-full bg-navy-600 z-10" />
+        <div className="absolute right-0 top-1/2 w-1.5 h-1.5 -mt-[3px] rounded-full bg-navy-600 z-10" />
 
-        {/* Flipping top card (falls forward) */}
+        {/* ── Flipping top card (falls forward, shows old value) ── */}
         {flipping && (
           <div
-            className="absolute inset-0 top-0 h-1/2 overflow-hidden rounded-t-lg bg-navy-800 border border-navy-700 z-20"
+            className="absolute inset-x-0 top-0 h-1/2 overflow-hidden rounded-t-lg bg-navy-800 border border-navy-700 z-20"
             style={{
               animation: 'flipTop 0.3s ease-in forwards',
               transformOrigin: 'bottom center',
@@ -83,10 +89,10 @@ function FlipCard({ value, label }: { value: string; label: string }) {
           </div>
         )}
 
-        {/* Flipping bottom card (unfolds from top) */}
+        {/* ── Flipping bottom card (unfolds, shows new value mirrored) ── */}
         {flipping && (
           <div
-            className="absolute inset-0 top-1/2 h-1/2 overflow-hidden rounded-b-lg bg-navy-900 border border-navy-700 border-t-0 z-20"
+            className="absolute inset-x-0 top-1/2 h-1/2 overflow-hidden rounded-b-lg bg-navy-900 border border-navy-700 border-t-0 z-20"
             style={{
               animation: 'flipBottom 0.3s 0.15s ease-out forwards',
               transformOrigin: 'top center',
@@ -94,9 +100,12 @@ function FlipCard({ value, label }: { value: string; label: string }) {
               transform: 'rotateX(90deg)',
             }}
           >
-            <div className="absolute inset-0 flex items-start justify-center pt-[1px]">
-              <span className="text-2xl sm:text-4xl font-bold text-gray-200 font-mono tabular-nums">{display}</span>
+            <div className="absolute inset-0 flex items-start justify-center pt-[1px]" style={{ transform: 'scaleY(-1)' }}>
+              <span className="text-2xl sm:text-4xl font-bold text-gray-400 font-mono tabular-nums" style={{ filter: 'blur(0.8px)' }}>
+                {display}
+              </span>
             </div>
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-navy-900/30 to-navy-900/80 pointer-events-none" />
           </div>
         )}
       </div>
