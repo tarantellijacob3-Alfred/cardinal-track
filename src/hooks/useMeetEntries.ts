@@ -6,13 +6,13 @@ export function useMeetEntries(meetId: string | undefined) {
   const [entries, setEntries] = useState<MeetEntryWithDetails[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetch = useCallback(async () => {
+  const fetch = useCallback(async (silent = false) => {
     if (!meetId) {
       setLoading(false)
       return
     }
 
-    setLoading(true)
+    if (!silent) setLoading(true)
     const { data, error } = await supabase
       .from('meet_entries')
       .select(`
@@ -26,7 +26,7 @@ export function useMeetEntries(meetId: string | undefined) {
     if (!error && data) {
       setEntries(data as unknown as MeetEntryWithDetails[])
     }
-    setLoading(false)
+    if (!silent) setLoading(false)
   }, [meetId])
 
   useEffect(() => {
@@ -68,8 +68,8 @@ export function useMeetEntries(meetId: string | undefined) {
     // Always update local state optimistically, then verify
     setEntries(prev => prev.filter(e => e.id !== entryId))
 
-    // Re-fetch to confirm
-    await fetch()
+    // Re-fetch silently to confirm (don't trigger loading state)
+    await fetch(true)
     return { error }
   }
 
