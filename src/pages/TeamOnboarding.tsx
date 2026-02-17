@@ -23,6 +23,10 @@ interface TeamInfo {
 
 const TRIAL_DAYS = 14
 
+// Danny Brown promo: free season for teams created before this date
+const PROMO_DEADLINE = new Date('2026-02-21T20:00:00-05:00').getTime()
+const isPromoActive = () => Date.now() < PROMO_DEADLINE
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -164,7 +168,10 @@ export default function TeamOnboarding() {
         }
       }
 
-      // Calculate trial expiration (14 days from now)
+      // Check if Danny Brown promo is active
+      const promo = isPromoActive()
+
+      // Calculate trial expiration (14 days from now) — not needed if promo
       const trialExpires = new Date()
       trialExpires.setDate(trialExpires.getDate() + TRIAL_DAYS)
 
@@ -178,10 +185,10 @@ export default function TeamOnboarding() {
           logo_url: logoUrl,
           primary_color: teamInfo.primaryColor,
           secondary_color: teamInfo.secondaryColor,
-          is_grandfathered: false,
+          is_grandfathered: promo,
           active: true,
           stripe_subscription_id: null,
-          trial_expires_at: trialExpires.toISOString(),
+          trial_expires_at: promo ? null : trialExpires.toISOString(),
           created_by: currentUser.user.id,
         } as Record<string, unknown>)
         .select()
@@ -490,58 +497,114 @@ export default function TeamOnboarding() {
           </div>
         )}
 
-        {/* ══════ Step 3: Plan Info (Free Trial) ══════ */}
+        {/* ══════ Step 3: Plan Info ══════ */}
         {step === 3 && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl">
             <h2 className="text-2xl font-bold text-navy-900 mb-1">Your Plan</h2>
-            <p className="text-gray-500 mb-6">Try TrackRoster free for {TRIAL_DAYS} days — no payment info needed</p>
 
-            <div className="border-2 border-brand-400 rounded-xl p-6 relative">
-              <div className="absolute -top-3 left-4 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                {TRIAL_DAYS}-DAY FREE TRIAL
-              </div>
-              <div className="flex items-baseline justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-navy-900">Season Pass</h3>
-                  <p className="text-sm text-gray-500">Full access for your entire season</p>
+            {isPromoActive() ? (
+              <>
+                <p className="text-gray-500 mb-6">Limited-time offer — create your team now and get a full season free</p>
+
+                <div className="border-2 border-brand-400 rounded-xl p-6 relative">
+                  <div className="absolute -top-3 left-4 bg-brand-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">
+                    FREE SEASON — LIMITED TIME
+                  </div>
+                  <div className="flex items-baseline justify-between mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-navy-900">Season Pass</h3>
+                      <p className="text-sm text-gray-500">Full access for your entire season</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-3xl font-bold text-navy-900 line-through text-gray-400">$300</span>
+                      <span className="text-3xl font-bold text-green-600 ml-2">FREE</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-brand-50 border border-brand-200 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-brand-800 font-medium">
+                      Countdown to Danny Brown — create your team before the clock runs out!
+                    </p>
+                    <p className="text-xs text-brand-700 mt-1">
+                      Full season access, completely free. No credit card, no catch.
+                    </p>
+                  </div>
+
+                  <ul className="space-y-3 mb-6">
+                    {features.map(feature => (
+                      <li key={feature} className="flex items-start space-x-2">
+                        <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-gray-700 text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={handleSelectPlan}
+                    className="btn-primary w-full min-h-[44px] text-lg"
+                  >
+                    Claim Free Season & Create Team
+                  </button>
+
+                  <p className="text-xs text-gray-400 text-center mt-3">
+                    No payment info needed. Your full season is on us.
+                  </p>
                 </div>
-                <div className="text-right">
-                  <span className="text-3xl font-bold text-navy-900">$300</span>
-                  <span className="text-gray-500">/season</span>
+              </>
+            ) : (
+              <>
+                <p className="text-gray-500 mb-6">Try TrackRoster free for {TRIAL_DAYS} days — no payment info needed</p>
+
+                <div className="border-2 border-brand-400 rounded-xl p-6 relative">
+                  <div className="absolute -top-3 left-4 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                    {TRIAL_DAYS}-DAY FREE TRIAL
+                  </div>
+                  <div className="flex items-baseline justify-between mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-navy-900">Season Pass</h3>
+                      <p className="text-sm text-gray-500">Full access for your entire season</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-3xl font-bold text-navy-900">$300</span>
+                      <span className="text-gray-500">/season</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-green-800 font-medium">
+                      Start free today — no credit card required
+                    </p>
+                    <p className="text-xs text-green-700 mt-1">
+                      You'll have full access for {TRIAL_DAYS} days. After that, subscribe at $300/season to keep your team active.
+                    </p>
+                  </div>
+
+                  <ul className="space-y-3 mb-6">
+                    {features.map(feature => (
+                      <li key={feature} className="flex items-start space-x-2">
+                        <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-gray-700 text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={handleSelectPlan}
+                    className="btn-primary w-full min-h-[44px] text-lg"
+                  >
+                    Start Free Trial & Create Team
+                  </button>
+
+                  <p className="text-xs text-gray-400 text-center mt-3">
+                    No payment info needed. After {TRIAL_DAYS} days, access pauses until you subscribe.
+                  </p>
                 </div>
-              </div>
-
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                <p className="text-sm text-green-800 font-medium">
-                  🎉 Start free today — no credit card required
-                </p>
-                <p className="text-xs text-green-700 mt-1">
-                  You'll have full access for {TRIAL_DAYS} days. After that, subscribe at $300/season to keep your team active.
-                </p>
-              </div>
-
-              <ul className="space-y-3 mb-6">
-                {features.map(feature => (
-                  <li key={feature} className="flex items-start space-x-2">
-                    <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span className="text-gray-700 text-sm">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={handleSelectPlan}
-                className="btn-primary w-full min-h-[44px] text-lg"
-              >
-                Start Free Trial & Create Team
-              </button>
-
-              <p className="text-xs text-gray-400 text-center mt-3">
-                No payment info needed. After {TRIAL_DAYS} days, access pauses until you subscribe.
-              </p>
-            </div>
+              </>
+            )}
 
             <button
               onClick={() => setStep(2)}
@@ -568,7 +631,10 @@ export default function TeamOnboarding() {
 
             <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6 text-left">
               <p className="text-sm text-green-800">
-                ✅ Your {TRIAL_DAYS}-day free trial starts now. Full access, no strings attached.
+                {isPromoActive()
+                  ? '✅ Your full season is free — Countdown to Danny Brown promo applied!'
+                  : `✅ Your ${TRIAL_DAYS}-day free trial starts now. Full access, no strings attached.`
+                }
               </p>
             </div>
 
