@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import type { Team } from '../types/database'
+import FlipCountdown from '../components/FlipCountdown'
 
 export default function Landing() {
   const { user, profile } = useAuth()
@@ -108,7 +109,13 @@ export default function Landing() {
           <p className="mt-6 text-lg sm:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
             Manage rosters, assign meet entries, and keep coaches, athletes, and parents all on the same page.
           </p>
-          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center max-w-md sm:max-w-none mx-auto">
+
+          {/* Promo Countdown */}
+          <div className="mt-10 mb-2">
+            <FlipCountdown />
+          </div>
+
+          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center max-w-md sm:max-w-none mx-auto">
             <Link
               to="/onboard"
               className="bg-brand-500 text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-brand-600 transition-colors shadow-lg shadow-black/20"
