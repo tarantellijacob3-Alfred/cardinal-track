@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -46,8 +46,7 @@ export default function TeamOnboarding() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [resendCooldown, setResendCooldown] = useState(0)
-  const [otpCode, setOtpCode] = useState(['', '', '', '', '', ''])
-  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([])
+  const [verificationCode, setVerificationCode] = useState('')
   
   // If user is already logged in, pre-fill email and show sign-in mode
   const [coach, setCoach] = useState<CoachInfo>({
@@ -79,25 +78,38 @@ export default function TeamOnboarding() {
     return () => clearTimeout(t)
   }, [resendCooldown])
 
-  /** Verify the 6-digit OTP code from email */
-  const handleVerifyOtp = async (code: string) => {
+  /** Verify the confirmation code from email */
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const code = verificationCode.trim()
+    if (!code) return
     setError('')
     setLoading(true)
     try {
+      // Try verifyOtp with type 'signup' first
       const { data, error: otpErr } = await supabase.auth.verifyOtp({
         email: coach.email,
         token: code,
         type: 'signup',
       })
-      if (otpErr) throw otpErr
-      if (!data?.session) throw new Error('Verification failed — no session returned')
+      if (otpErr) {
+        // If that fails, try type 'email' (Supabase sometimes uses this)
+        const { data: data2, error: otpErr2 } = await supabase.auth.verifyOtp({
+          email: coach.email,
+          token: code,
+          type: 'email',
+        })
+        if (otpErr2) throw otpErr
+        if (!data2?.session) throw new Error('Verification failed — no session returned')
+      } else if (!data?.session) {
+        throw new Error('Verification failed — no session returned')
+      }
       
       await refreshProfile()
       setStep('team-info')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Invalid code. Please try again.')
-      setOtpCode(['', '', '', '', '', ''])
-      otpInputRefs.current[0]?.focus()
+      setVerificationCode('')
     } finally {
       setLoading(false)
     }
@@ -167,7 +179,7 @@ export default function TeamOnboarding() {
           await supabase.auth.signOut()
         }
         
-        setOtpCode(['', '', '', '', '', ''])
+        setVerificationCode('')
         setStep('verify-email')
       }
     } catch (err: unknown) {
@@ -474,7 +486,7 @@ export default function TeamOnboarding() {
           </div>
         )}
 
-        {/* ══════ Step 1.5: Verify Email with OTP Code ══════ */}
+        {/* ══════ Step 1.5: Verify Email with Code ══════ */}
         {step === 'verify-email' && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl text-center">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -482,92 +494,34 @@ export default function TeamOnboarding() {
             </div>
             <h2 className="text-2xl font-bold text-navy-900 mb-2">Enter Verification Code</h2>
             <p className="text-gray-500 mb-2">
-              We sent a 6-digit code to:
+              We sent a code to:
             </p>
             <p className="text-navy-800 font-semibold text-lg mb-6">{coach.email}</p>
             
-            {/* 6-digit OTP input */}
-            <div className="flex justify-center gap-2 sm:gap-3 mb-6">
-              {otpCode.map((digit, i) => (
-                <input
-                  key={i}
-                  ref={el => { otpInputRefs.current[i] = el }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  autoFocus={i === 0}
-                  className="w-11 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold border-2 border-gray-200 rounded-lg focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 outline-none transition-colors"
-                  onChange={e => {
-                    const val = e.target.value.replace(/\D/g, '')
-                    if (!val && !digit) return
-                    const newCode = [...otpCode]
-                    
-                    // Handle paste of full code
-                    if (val.length > 1) {
-                      const chars = val.slice(0, 6).split('')
-                      chars.forEach((c, idx) => { if (idx < 6) newCode[idx] = c })
-                      setOtpCode(newCode)
-                      const fullCode = newCode.join('')
-                      if (fullCode.length === 6) {
-                        handleVerifyOtp(fullCode)
-                      } else {
-                        otpInputRefs.current[Math.min(chars.length, 5)]?.focus()
-                      }
-                      return
-                    }
-                    
-                    newCode[i] = val
-                    setOtpCode(newCode)
-                    
-                    // Auto-advance to next input
-                    if (val && i < 5) {
-                      otpInputRefs.current[i + 1]?.focus()
-                    }
-                    
-                    // Auto-submit when all 6 digits entered
-                    const fullCode = newCode.join('')
-                    if (fullCode.length === 6) {
-                      handleVerifyOtp(fullCode)
-                    }
-                  }}
-                  onKeyDown={e => {
-                    // Backspace: clear current and go back
-                    if (e.key === 'Backspace' && !otpCode[i] && i > 0) {
-                      const newCode = [...otpCode]
-                      newCode[i - 1] = ''
-                      setOtpCode(newCode)
-                      otpInputRefs.current[i - 1]?.focus()
-                    }
-                  }}
-                  onPaste={e => {
-                    e.preventDefault()
-                    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
-                    if (pasted) {
-                      const newCode = [...otpCode]
-                      pasted.split('').forEach((c, idx) => { if (idx < 6) newCode[idx] = c })
-                      setOtpCode(newCode)
-                      if (pasted.length === 6) {
-                        handleVerifyOtp(pasted)
-                      } else {
-                        otpInputRefs.current[Math.min(pasted.length, 5)]?.focus()
-                      }
-                    }
-                  }}
-                />
-              ))}
-            </div>
+            <form onSubmit={handleVerifyCode} className="space-y-4">
+              <input
+                type="text"
+                value={verificationCode}
+                onChange={e => setVerificationCode(e.target.value)}
+                className="input text-center text-lg font-mono tracking-wider"
+                placeholder="Paste your code here"
+                autoFocus
+                autoComplete="one-time-code"
+              />
 
-            {loading && (
-              <div className="flex items-center justify-center space-x-2 mb-4">
-                <div className="w-4 h-4 animate-spin rounded-full border-2 border-brand-400/30 border-t-brand-400" />
-                <span className="text-sm text-gray-500">Verifying...</span>
-              </div>
-            )}
+              <button type="submit" disabled={loading || !verificationCode.trim()} className="btn-primary w-full min-h-[44px]">
+                {loading ? (
+                  <span className="flex items-center justify-center space-x-2">
+                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    <span>Verifying...</span>
+                  </span>
+                ) : 'Verify & Continue'}
+              </button>
+            </form>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-left">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4 mb-4 text-left">
               <p className="text-xs text-blue-700">
-                📬 Check your inbox (and spam folder) for an email from TrackRoster with your code.
+                📬 Check your inbox (and spam folder) for an email from TrackRoster with your verification code.
               </p>
             </div>
 
