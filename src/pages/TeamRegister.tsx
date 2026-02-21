@@ -31,28 +31,9 @@ export default function TeamRegister() {
       return
     }
 
-    // Get the current user and add to team_members
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user && teamId) {
-      await supabase
-        .from('team_members')
-        .upsert({
-          profile_id: user.id,
-          team_id: teamId,
-          role: 'coach',
-          approved: false,
-          is_owner: false,
-        } as Record<string, unknown>, { onConflict: 'profile_id,team_id' })
-
-      // Backward compat
-      await supabase
-        .from('profiles')
-        .update({ team_id: teamId } as Record<string, unknown>)
-        .eq('id', user.id)
-    }
-
+    // With email confirmation ON, the user won't have a session yet.
+    // They need to verify email first, then sign in.
     setSuccess(true)
-    setTimeout(() => navigate(teamPath('/')), 2000)
     setLoading(false)
   }
 
@@ -65,15 +46,15 @@ export default function TeamRegister() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-navy-900">Account Created!</h2>
+          <h2 className="text-xl font-bold text-navy-900">Check Your Email!</h2>
           <p className="mt-2 text-gray-600">
-            Your coach account for <strong>{teamName}</strong> is pending approval.
-            Please contact the head coach or admin to get approved.
+            We sent a confirmation link to <strong>{email}</strong>.
           </p>
           <p className="mt-2 text-gray-600">
-            Check your email to verify your account. Redirecting...
+            Click the link in the email to verify your account, then sign in.
+            Your coach account will need approval from the head coach.
           </p>
-          <Link to={teamPath('/')} className="btn-primary inline-block mt-4">Go to {teamName}</Link>
+          <Link to={teamPath('/login')} className="btn-primary inline-block mt-4">Go to Sign In</Link>
         </div>
       </div>
     )

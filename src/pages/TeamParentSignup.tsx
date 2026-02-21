@@ -23,41 +23,24 @@ export default function TeamParentSignup() {
     setLoading(true)
 
     try {
-      // Sign up
-      const { data, error: signUpErr } = await supabase.auth.signUp({
+      // Sign up — with email confirmation ON, user must verify first
+      const { error: signUpErr } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: fullName } },
+        options: {
+          data: {
+            full_name: fullName,
+            role: 'parent',
+            team_id: teamId || null,
+          },
+          emailRedirectTo: `${window.location.origin}${teamPath('/login')}`,
+        },
       })
       if (signUpErr) throw signUpErr
-      if (!data.user) throw new Error('Signup failed')
 
-      // Update profile
-      await supabase
-        .from('profiles')
-        .update({
-          role: 'parent',
-          approved: true,
-          full_name: fullName,
-          team_id: teamId || null,
-        } as Record<string, unknown>)
-        .eq('id', data.user.id)
-
-      // Add to team_members
-      if (teamId) {
-        await supabase
-          .from('team_members')
-          .upsert({
-            profile_id: data.user.id,
-            team_id: teamId,
-            role: 'parent',
-            approved: true,
-            is_owner: false,
-          } as Record<string, unknown>, { onConflict: 'profile_id,team_id' })
-      }
-
+      // Profile + team_members will be created by the auth trigger
+      // after email verification. Show success screen.
       setSuccess(true)
-      setTimeout(() => navigate(teamPath('/')), 1500)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -74,10 +57,14 @@ export default function TeamParentSignup() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-navy-900">Welcome!</h2>
+          <h2 className="text-2xl font-bold text-navy-900">Check Your Email!</h2>
           <p className="text-gray-500 mt-2">
-            Your account has been created for <strong>{teamName}</strong>. Redirecting...
+            We sent a verification link to <strong>{email}</strong>.
           </p>
+          <p className="text-gray-500 mt-1">
+            Click the link to confirm your account, then sign in to follow your favorite athletes on <strong>{teamName}</strong>.
+          </p>
+          <Link to={teamPath('/login')} className="btn-primary inline-block mt-4">Go to Sign In</Link>
         </div>
       </div>
     )

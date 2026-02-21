@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 
-type Step = 1 | 2 | 3 | 4
+type Step = 'account' | 'verify-email' | 'team-info' | 'plan' | 'launch'
 
 interface CoachInfo {
   fullName: string
@@ -40,9 +40,11 @@ export default function TeamOnboarding() {
   const navigate = useNavigate()
   const { user, profile, signIn, refreshProfile } = useAuth()
 
-  const [step, setStep] = useState<Step>(user ? 2 : 1)
+  const [step, setStep] = useState<Step>(user ? 'team-info' : 'account')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Step 1: Coach account
   const [coach, setCoach] = useState<CoachInfo>({
@@ -65,6 +67,51 @@ export default function TeamOnboarding() {
   // Step 3/4: Created team slug for redirect
   const [createdSlug, setCreatedSlug] = useState('')
 
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current)
+    }
+  }, [])
+
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const t = setTimeout(() => setResendCooldown(c => c - 1), 1000)
+    return () => clearTimeout(t)
+  }, [resendCooldown])
+
+  /** Poll for email verification after signup */
+  const startVerificationPolling = useCallback(() => {
+    if (pollRef.current) clearInterval(pollRef.current)
+    pollRef.current = setInterval(async () => {
+      const { data } = await supabase.auth.getUser()
+      if (data?.user?.email_confirmed_at) {
+        if (pollRef.current) clearInterval(pollRef.current)
+        pollRef.current = null
+        // Refresh session to pick up confirmed status
+        await supabase.auth.refreshSession()
+        setStep('team-info')
+      }
+    }, 3000) // check every 3 seconds
+  }, [])
+
+  /** Resend verification email */
+  const handleResendVerification = async () => {
+    if (resendCooldown > 0) return
+    setError('')
+    try {
+      const { error: resendErr } = await supabase.auth.resend({
+        type: 'signup',
+        email: coach.email,
+      })
+      if (resendErr) throw resendErr
+      setResendCooldown(60) // 60 second cooldown
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to resend email')
+    }
+  }
+
   /* ── Step 1: Sign up or sign in ── */
   const handleStep1 = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,20 +120,29 @@ export default function TeamOnboarding() {
 
     try {
       if (coach.isExisting) {
-        // Sign in existing user
+        // Sign in existing user — already verified
         const { error: err } = await signIn(coach.email, coach.password)
         if (err) throw err
+        setStep('team-info')
       } else {
         // Sign up new coach account
         const { data, error: signUpErr } = await supabase.auth.signUp({
           email: coach.email,
           password: coach.password,
-          options: { data: { full_name: coach.fullName } },
+          options: {
+            data: { full_name: coach.fullName },
+            emailRedirectTo: `${window.location.origin}/onboard`,
+          },
         })
         if (signUpErr) throw signUpErr
 
-        if (data.user) {
-          // Update profile to coach (will be fully approved after team creation)
+        if (data.user && !data.user.email_confirmed_at) {
+          // Email not confirmed yet — show verification screen
+          setStep('verify-email')
+          startVerificationPolling()
+        } else if (data.user) {
+          // Already confirmed (e.g. confirm email is off in Supabase)
+          // Update profile to coach
           await supabase
             .from('profiles')
             .update({
@@ -95,10 +151,9 @@ export default function TeamOnboarding() {
               full_name: coach.fullName,
             } as Record<string, unknown>)
             .eq('id', data.user.id)
+          setStep('team-info')
         }
       }
-
-      setStep(2)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -134,12 +189,12 @@ export default function TeamOnboarding() {
 
     setTeamInfo(prev => ({ ...prev, slug }))
     setLoading(false)
-    setStep(3)
+    setStep('plan')
   }
 
   /* ── Step 3: Plan selection → go to step 4 ── */
   const handleSelectPlan = () => {
-    setStep(4)
+    setStep('launch')
   }
 
   /* ── Step 4: Create team + redirect to Stripe ── */
@@ -298,30 +353,34 @@ export default function TeamOnboarding() {
 
       <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
         {/* Progress bar */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            {[1, 2, 3, 4].map(s => (
-              <div key={s} className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                  s <= step ? 'bg-brand-400 text-navy-900' : 'bg-navy-700 text-gray-400'
-                }`}>
-                  {s < step ? '✓' : s}
-                </div>
-                {s < 4 && (
-                  <div className={`w-16 sm:w-24 h-1 mx-1 rounded ${
-                    s < step ? 'bg-brand-400' : 'bg-navy-700'
-                  }`} />
-                )}
+        {(() => {
+          const displaySteps = ['Account', 'Team Info', 'Plan', 'Launch']
+          // Map current step to a 1-4 progress number
+          const stepNum = step === 'account' || step === 'verify-email' ? 1 : step === 'team-info' ? 2 : step === 'plan' ? 3 : 4
+          return (
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-2">
+                {[1, 2, 3, 4].map(s => (
+                  <div key={s} className="flex items-center">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                      s <= stepNum ? 'bg-brand-400 text-navy-900' : 'bg-navy-700 text-gray-400'
+                    }`}>
+                      {s < stepNum ? '✓' : s}
+                    </div>
+                    {s < 4 && (
+                      <div className={`w-16 sm:w-24 h-1 mx-1 rounded ${
+                        s < stepNum ? 'bg-brand-400' : 'bg-navy-700'
+                      }`} />
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="flex justify-between text-xs text-gray-400">
-            <span>Account</span>
-            <span>Team Info</span>
-            <span>Plan</span>
-            <span>Launch</span>
-          </div>
-        </div>
+              <div className="flex justify-between text-xs text-gray-400">
+                {displaySteps.map(label => <span key={label}>{label}</span>)}
+              </div>
+            </div>
+          )
+        })()}
 
         {error && (
           <div className="mb-6 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 text-sm">
@@ -330,7 +389,7 @@ export default function TeamOnboarding() {
         )}
 
         {/* ══════ Step 1: Coach Account ══════ */}
-        {step === 1 && (
+        {step === 'account' && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl">
             <h2 className="text-2xl font-bold text-navy-900 mb-1">Create Your Coach Account</h2>
             <p className="text-gray-500 mb-6">Or sign in if you already have one</p>
@@ -399,8 +458,61 @@ export default function TeamOnboarding() {
           </div>
         )}
 
+        {/* ══════ Step 1.5: Verify Email ══════ */}
+        {step === 'verify-email' && (
+          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl text-center">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">📧</span>
+            </div>
+            <h2 className="text-2xl font-bold text-navy-900 mb-2">Verify Your Email</h2>
+            <p className="text-gray-500 mb-2">
+              We sent a confirmation link to:
+            </p>
+            <p className="text-navy-800 font-semibold text-lg mb-6">{coach.email}</p>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
+              <p className="text-sm text-blue-800 font-medium mb-2">📬 Check your inbox</p>
+              <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
+                <li>Open the email from TrackRoster</li>
+                <li>Click the confirmation link</li>
+                <li>You'll be brought right back here</li>
+              </ol>
+              <p className="text-xs text-blue-600 mt-2">
+                Don't see it? Check your spam/junk folder.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center space-x-2 mb-4">
+              <div className="w-4 h-4 animate-spin rounded-full border-2 border-brand-400/30 border-t-brand-400" />
+              <span className="text-sm text-gray-500">Waiting for confirmation...</span>
+            </div>
+
+            <button
+              onClick={handleResendVerification}
+              disabled={resendCooldown > 0}
+              className="text-sm text-brand-600 hover:text-brand-700 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
+            >
+              {resendCooldown > 0
+                ? `Resend in ${resendCooldown}s`
+                : 'Resend verification email'}
+            </button>
+
+            <div className="mt-6 pt-4 border-t border-gray-100">
+              <button
+                onClick={() => {
+                  if (pollRef.current) clearInterval(pollRef.current)
+                  setStep('account')
+                }}
+                className="text-sm text-gray-400 hover:text-gray-600"
+              >
+                ← Use a different email
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ══════ Step 2: Team Info ══════ */}
-        {step === 2 && (
+        {step === 'team-info' && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl">
             <h2 className="text-2xl font-bold text-navy-900 mb-1">Set Up Your Team</h2>
             <p className="text-gray-500 mb-6">Tell us about your track & field program</p>
@@ -528,7 +640,7 @@ export default function TeamOnboarding() {
               <div className="flex space-x-3">
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep('account')}
                   className="btn-ghost flex-1 min-h-[44px]"
                 >
                   Back
@@ -542,7 +654,7 @@ export default function TeamOnboarding() {
         )}
 
         {/* ══════ Step 3: Plan Info ══════ */}
-        {step === 3 && (
+        {step === 'plan' && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl">
             <h2 className="text-2xl font-bold text-navy-900 mb-1">Your Plan</h2>
 
@@ -651,7 +763,7 @@ export default function TeamOnboarding() {
             )}
 
             <button
-              onClick={() => setStep(2)}
+              onClick={() => setStep('team-info')}
               className="btn-ghost w-full mt-4 min-h-[44px]"
             >
               Back to Team Info
@@ -660,7 +772,7 @@ export default function TeamOnboarding() {
         )}
 
         {/* ══════ Step 4: Launch ══════ */}
-        {step === 4 && (
+        {step === 'launch' && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl text-center">
             <div className="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl">🚀</span>
@@ -698,7 +810,7 @@ export default function TeamOnboarding() {
             </button>
 
             <button
-              onClick={() => setStep(3)}
+              onClick={() => setStep('plan')}
               className="btn-ghost w-full mt-3 min-h-[44px]"
             >
               Back
