@@ -81,20 +81,42 @@ export default function TeamOnboarding() {
     return () => clearTimeout(t)
   }, [resendCooldown])
 
-  /** Poll for email verification after signup */
+  /** Poll for email verification — listens for auth state change (user clicks confirm link) */
   const startVerificationPolling = useCallback(() => {
+    // When user clicks the confirmation link, Supabase processes it and
+    // if they return to this page, onAuthStateChange fires with SIGNED_IN.
+    // We also try signing in periodically in case they confirmed in another tab.
     if (pollRef.current) clearInterval(pollRef.current)
-    pollRef.current = setInterval(async () => {
-      const { data } = await supabase.auth.getUser()
-      if (data?.user?.email_confirmed_at) {
+    
+    // Listen for auth state change (user returns from confirm link)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
+        subscription.unsubscribe()
         if (pollRef.current) clearInterval(pollRef.current)
         pollRef.current = null
-        // Refresh session to pick up confirmed status
-        await supabase.auth.refreshSession()
         setStep('team-info')
       }
-    }, 3000) // check every 3 seconds
-  }, [])
+    })
+
+    // Also poll by trying to sign in (in case they verified in another tab/device)
+    pollRef.current = setInterval(async () => {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: coach.email,
+          password: coach.password,
+        })
+        if (!error && data?.session) {
+          // Verified! They can sign in now.
+          if (pollRef.current) clearInterval(pollRef.current)
+          pollRef.current = null
+          subscription.unsubscribe()
+          setStep('team-info')
+        }
+      } catch {
+        // Expected to fail until email is confirmed
+      }
+    }, 5000) // try every 5 seconds
+  }, [coach.email, coach.password])
 
   /** Resend verification email */
   const handleResendVerification = async () => {
@@ -136,13 +158,19 @@ export default function TeamOnboarding() {
         })
         if (signUpErr) throw signUpErr
 
-        if (data.user && !data.user.email_confirmed_at) {
+        // When "Confirm email" is ON in Supabase:
+        // - data.session will be null (no session until verified)
+        // - data.user will exist but email not confirmed
+        // When "Confirm email" is OFF:
+        // - data.session will be set (auto-confirmed)
+        const needsVerification = !data.session
+        
+        if (needsVerification) {
           // Email not confirmed yet — show verification screen
           setStep('verify-email')
           startVerificationPolling()
         } else if (data.user) {
-          // Already confirmed (e.g. confirm email is off in Supabase)
-          // Update profile to coach
+          // Already confirmed (confirm email is off in Supabase)
           await supabase
             .from('profiles')
             .update({
