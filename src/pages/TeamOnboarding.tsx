@@ -83,6 +83,9 @@ export default function TeamOnboarding() {
     return () => clearTimeout(t)
   }, [resendCooldown])
 
+  // Track whether we actually created a NEW user (vs hitting an existing one)
+  const signupUserIdRef = useRef<string | null>(null)
+
   /** Poll for email verification by trying to sign in periodically */
   const startVerificationPolling = useCallback(() => {
     if (pollRef.current) clearInterval(pollRef.current)
@@ -94,7 +97,17 @@ export default function TeamOnboarding() {
           email: coach.email,
           password: coach.password,
         })
-        if (!error && data?.session) {
+        if (!error && data?.session && data.user) {
+          // Make sure this is the SAME user we just created, not a pre-existing one
+          if (signupUserIdRef.current && data.user.id !== signupUserIdRef.current) {
+            // Wrong user — this email was already taken by someone else
+            await supabase.auth.signOut()
+            if (pollRef.current) clearInterval(pollRef.current)
+            pollRef.current = null
+            setError('This email is already associated with another account. Please use a different email.')
+            setStep('account')
+            return
+          }
           // Email verified — they can sign in now
           if (pollRef.current) clearInterval(pollRef.current)
           pollRef.current = null
@@ -165,6 +178,9 @@ export default function TeamOnboarding() {
         if (data.user && data.user.identities && data.user.identities.length === 0) {
           throw new Error('An account with this email already exists. Try signing in instead.')
         }
+        
+        // Save the user ID so polling can verify it's the same user
+        signupUserIdRef.current = data.user?.id || null
         
         // Force verification screen — sign out any auto-created session
         if (data.session) {
