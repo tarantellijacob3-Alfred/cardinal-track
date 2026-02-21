@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -46,7 +46,8 @@ export default function TeamOnboarding() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [resendCooldown, setResendCooldown] = useState(0)
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [otpCode, setOtpCode] = useState(['', '', '', '', '', ''])
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([])
   
   // If user is already logged in, pre-fill email and show sign-in mode
   const [coach, setCoach] = useState<CoachInfo>({
@@ -69,12 +70,7 @@ export default function TeamOnboarding() {
   // Step 3/4: Created team slug for redirect
   const [createdSlug, setCreatedSlug] = useState('')
 
-  // Cleanup polling on unmount
-  useEffect(() => {
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current)
-    }
-  }, [])
+  // No cleanup needed — removed polling
 
   // Resend cooldown timer
   useEffect(() => {
@@ -83,42 +79,29 @@ export default function TeamOnboarding() {
     return () => clearTimeout(t)
   }, [resendCooldown])
 
-  // Track whether we actually created a NEW user (vs hitting an existing one)
-  const signupUserIdRef = useRef<string | null>(null)
-
-  /** Poll for email verification by trying to sign in periodically */
-  const startVerificationPolling = useCallback(() => {
-    if (pollRef.current) clearInterval(pollRef.current)
-    
-    // Poll by trying to sign in — will fail with "email_not_confirmed" until verified
-    pollRef.current = setInterval(async () => {
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: coach.email,
-          password: coach.password,
-        })
-        if (!error && data?.session && data.user) {
-          // Make sure this is the SAME user we just created, not a pre-existing one
-          if (signupUserIdRef.current && data.user.id !== signupUserIdRef.current) {
-            // Wrong user — this email was already taken by someone else
-            await supabase.auth.signOut()
-            if (pollRef.current) clearInterval(pollRef.current)
-            pollRef.current = null
-            setError('This email is already associated with another account. Please use a different email.')
-            setStep('account')
-            return
-          }
-          // Email verified — they can sign in now
-          if (pollRef.current) clearInterval(pollRef.current)
-          pollRef.current = null
-          await refreshProfile()
-          setStep('team-info')
-        }
-      } catch {
-        // Expected to fail until email is confirmed
-      }
-    }, 4000) // try every 4 seconds
-  }, [coach.email, coach.password, refreshProfile])
+  /** Verify the 6-digit OTP code from email */
+  const handleVerifyOtp = async (code: string) => {
+    setError('')
+    setLoading(true)
+    try {
+      const { data, error: otpErr } = await supabase.auth.verifyOtp({
+        email: coach.email,
+        token: code,
+        type: 'signup',
+      })
+      if (otpErr) throw otpErr
+      if (!data?.session) throw new Error('Verification failed — no session returned')
+      
+      await refreshProfile()
+      setStep('team-info')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Invalid code. Please try again.')
+      setOtpCode(['', '', '', '', '', ''])
+      otpInputRefs.current[0]?.focus()
+    } finally {
+      setLoading(false)
+    }
+  }
 
   /** Resend verification email */
   const handleResendVerification = async () => {
@@ -179,16 +162,13 @@ export default function TeamOnboarding() {
           throw new Error('An account with this email already exists. Try signing in instead.')
         }
         
-        // Save the user ID so polling can verify it's the same user
-        signupUserIdRef.current = data.user?.id || null
-        
         // Force verification screen — sign out any auto-created session
         if (data.session) {
           await supabase.auth.signOut()
         }
         
+        setOtpCode(['', '', '', '', '', ''])
         setStep('verify-email')
-        startVerificationPolling()
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -494,33 +474,101 @@ export default function TeamOnboarding() {
           </div>
         )}
 
-        {/* ══════ Step 1.5: Verify Email ══════ */}
+        {/* ══════ Step 1.5: Verify Email with OTP Code ══════ */}
         {step === 'verify-email' && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl text-center">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl">📧</span>
+              <span className="text-3xl">🔐</span>
             </div>
-            <h2 className="text-2xl font-bold text-navy-900 mb-2">Verify Your Email</h2>
+            <h2 className="text-2xl font-bold text-navy-900 mb-2">Enter Verification Code</h2>
             <p className="text-gray-500 mb-2">
-              We sent a confirmation link to:
+              We sent a 6-digit code to:
             </p>
             <p className="text-navy-800 font-semibold text-lg mb-6">{coach.email}</p>
             
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
-              <p className="text-sm text-blue-800 font-medium mb-2">📬 Check your inbox</p>
-              <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
-                <li>Open the email from TrackRoster</li>
-                <li>Click the confirmation link</li>
-                <li>You'll be brought right back here</li>
-              </ol>
-              <p className="text-xs text-blue-600 mt-2">
-                Don't see it? Check your spam/junk folder.
-              </p>
+            {/* 6-digit OTP input */}
+            <div className="flex justify-center gap-2 sm:gap-3 mb-6">
+              {otpCode.map((digit, i) => (
+                <input
+                  key={i}
+                  ref={el => { otpInputRefs.current[i] = el }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  autoFocus={i === 0}
+                  className="w-11 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold border-2 border-gray-200 rounded-lg focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 outline-none transition-colors"
+                  onChange={e => {
+                    const val = e.target.value.replace(/\D/g, '')
+                    if (!val && !digit) return
+                    const newCode = [...otpCode]
+                    
+                    // Handle paste of full code
+                    if (val.length > 1) {
+                      const chars = val.slice(0, 6).split('')
+                      chars.forEach((c, idx) => { if (idx < 6) newCode[idx] = c })
+                      setOtpCode(newCode)
+                      const fullCode = newCode.join('')
+                      if (fullCode.length === 6) {
+                        handleVerifyOtp(fullCode)
+                      } else {
+                        otpInputRefs.current[Math.min(chars.length, 5)]?.focus()
+                      }
+                      return
+                    }
+                    
+                    newCode[i] = val
+                    setOtpCode(newCode)
+                    
+                    // Auto-advance to next input
+                    if (val && i < 5) {
+                      otpInputRefs.current[i + 1]?.focus()
+                    }
+                    
+                    // Auto-submit when all 6 digits entered
+                    const fullCode = newCode.join('')
+                    if (fullCode.length === 6) {
+                      handleVerifyOtp(fullCode)
+                    }
+                  }}
+                  onKeyDown={e => {
+                    // Backspace: clear current and go back
+                    if (e.key === 'Backspace' && !otpCode[i] && i > 0) {
+                      const newCode = [...otpCode]
+                      newCode[i - 1] = ''
+                      setOtpCode(newCode)
+                      otpInputRefs.current[i - 1]?.focus()
+                    }
+                  }}
+                  onPaste={e => {
+                    e.preventDefault()
+                    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+                    if (pasted) {
+                      const newCode = [...otpCode]
+                      pasted.split('').forEach((c, idx) => { if (idx < 6) newCode[idx] = c })
+                      setOtpCode(newCode)
+                      if (pasted.length === 6) {
+                        handleVerifyOtp(pasted)
+                      } else {
+                        otpInputRefs.current[Math.min(pasted.length, 5)]?.focus()
+                      }
+                    }
+                  }}
+                />
+              ))}
             </div>
 
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              <div className="w-4 h-4 animate-spin rounded-full border-2 border-brand-400/30 border-t-brand-400" />
-              <span className="text-sm text-gray-500">Waiting for confirmation...</span>
+            {loading && (
+              <div className="flex items-center justify-center space-x-2 mb-4">
+                <div className="w-4 h-4 animate-spin rounded-full border-2 border-brand-400/30 border-t-brand-400" />
+                <span className="text-sm text-gray-500">Verifying...</span>
+              </div>
+            )}
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-left">
+              <p className="text-xs text-blue-700">
+                📬 Check your inbox (and spam folder) for an email from TrackRoster with your code.
+              </p>
             </div>
 
             <button
@@ -530,15 +578,12 @@ export default function TeamOnboarding() {
             >
               {resendCooldown > 0
                 ? `Resend in ${resendCooldown}s`
-                : 'Resend verification email'}
+                : "Didn't get the code? Resend"}
             </button>
 
             <div className="mt-6 pt-4 border-t border-gray-100">
               <button
-                onClick={() => {
-                  if (pollRef.current) clearInterval(pollRef.current)
-                  setStep('account')
-                }}
+                onClick={() => setStep('account')}
                 className="text-sm text-gray-400 hover:text-gray-600"
               >
                 ← Use a different email
