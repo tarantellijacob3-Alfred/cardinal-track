@@ -40,13 +40,15 @@ export default function TeamOnboarding() {
   const navigate = useNavigate()
   const { user, profile, signIn, refreshProfile } = useAuth()
 
-  const [step, setStep] = useState<Step>(user ? 'team-info' : 'account')
+  // Always start at account step — even if user is logged in, they might want to
+  // create a new team with a different account. They can use "Sign In" toggle to use existing.
+  const [step, setStep] = useState<Step>('account')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [resendCooldown, setResendCooldown] = useState(0)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  // Step 1: Coach account
+  
+  // If user is already logged in, pre-fill email and show sign-in mode
   const [coach, setCoach] = useState<CoachInfo>({
     fullName: profile?.full_name || '',
     email: user?.email || '',
@@ -145,8 +147,12 @@ export default function TeamOnboarding() {
         // Sign in existing user — already verified
         const { error: err } = await signIn(coach.email, coach.password)
         if (err) throw err
+        await refreshProfile()
         setStep('team-info')
       } else {
+        // Sign out any existing session first so the new account is clean
+        await supabase.auth.signOut()
+        
         // Sign up new coach account
         const { data, error: signUpErr } = await supabase.auth.signUp({
           email: coach.email,
