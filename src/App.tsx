@@ -24,6 +24,8 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminTeams from './pages/admin/AdminTeams'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminSeasons from './pages/admin/AdminSeasons'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import InstallPrompt from './components/InstallPrompt'
 import OfflineIndicator from './components/OfflineIndicator'
 import ScrollToTop from './components/ScrollToTop'
@@ -60,6 +62,10 @@ export default function App() {
           {/* Onboarding stays global (creating a new team) */}
           <Route path="/onboard" element={<TeamOnboarding />} />
           <Route path="/join" element={<JoinTeam />} />
+
+          {/* ══════ Password Reset ══════ */}
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* ══════ Backward-compatible redirects ══════ */}
           <Route path="/roster" element={<Navigate to={`/t/${DEFAULT_SLUG}/roster`} replace />} />

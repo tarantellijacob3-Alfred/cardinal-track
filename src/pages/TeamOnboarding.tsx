@@ -220,7 +220,46 @@ export default function TeamOnboarding() {
       await refreshProfile()
       setCreatedSlug(slug)
 
-      navigate(`/t/${slug}`)
+      if (promo) {
+        // Promo: go straight to dashboard (free season, no payment needed)
+        navigate(`/t/${slug}`)
+      } else {
+        // Non-promo: redirect to Stripe checkout with 14-day trial
+        try {
+          const { data: sessionData } = await supabase.auth.getSession()
+          const token = sessionData?.session?.access_token
+          if (!token) throw new Error('No auth token')
+
+          const res = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                teamId: (team as { id: string }).id,
+                trial: true,
+              }),
+            }
+          )
+
+          const { url, error: checkoutErr } = await res.json()
+          if (checkoutErr) throw new Error(checkoutErr)
+
+          if (url) {
+            window.location.href = url
+          } else {
+            // Fallback: go to dashboard (trial will still work from trial_expires_at)
+            navigate(`/t/${slug}`)
+          }
+        } catch (stripeErr) {
+          console.error('Stripe checkout redirect failed:', stripeErr)
+          // Fallback: go to dashboard with trial active
+          navigate(`/t/${slug}`)
+        }
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to create team')
     } finally {
@@ -247,9 +286,14 @@ export default function TeamOnboarding() {
           <img src="/trackroster-logo.svg" alt="TrackRoster" className="w-10 h-10" />
           <span className="text-white font-bold text-xl">TrackRoster</span>
         </Link>
-        <Link to="/login" className="text-gray-300 hover:text-white text-xs sm:text-sm font-medium whitespace-nowrap">
-          Already have an account? Sign In
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link to="/" className="text-gray-400 hover:text-white text-xs sm:text-sm font-medium whitespace-nowrap">
+            ← Back
+          </Link>
+          <Link to="/login" className="text-gray-300 hover:text-white text-xs sm:text-sm font-medium whitespace-nowrap">
+            Already have an account? Sign In
+          </Link>
+        </div>
       </nav>
 
       <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
@@ -555,7 +599,7 @@ export default function TeamOnboarding() {
               </>
             ) : (
               <>
-                <p className="text-gray-500 mb-6">Try TrackRoster free for {TRIAL_DAYS} days — no payment info needed</p>
+                <p className="text-gray-500 mb-6">Try TrackRoster free for {TRIAL_DAYS} days — cancel anytime</p>
 
                 <div className="border-2 border-brand-400 rounded-xl p-6 relative">
                   <div className="absolute -top-3 left-4 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">
@@ -574,10 +618,10 @@ export default function TeamOnboarding() {
 
                   <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
                     <p className="text-sm text-green-800 font-medium">
-                      Start free today — no credit card required
+                      Start free today — {TRIAL_DAYS} days on us
                     </p>
                     <p className="text-xs text-green-700 mt-1">
-                      You'll have full access for {TRIAL_DAYS} days. After that, subscribe at $300/season to keep your team active.
+                      Full access for {TRIAL_DAYS} days. After that, you'll be charged $300/season automatically. Cancel anytime before the trial ends — no charge.
                     </p>
                   </div>
 
@@ -600,7 +644,7 @@ export default function TeamOnboarding() {
                   </button>
 
                   <p className="text-xs text-gray-400 text-center mt-3">
-                    No payment info needed. After {TRIAL_DAYS} days, access pauses until you subscribe.
+                    You'll enter payment info on the next step. You won't be charged until after your {TRIAL_DAYS}-day trial.
                   </p>
                 </div>
               </>
@@ -633,7 +677,7 @@ export default function TeamOnboarding() {
               <p className="text-sm text-green-800">
                 {isPromoActive()
                   ? '✅ Your full season is free — Countdown to Danny Brown promo applied!'
-                  : `✅ Your ${TRIAL_DAYS}-day free trial starts now. Full access, no strings attached.`
+                  : `✅ ${TRIAL_DAYS}-day free trial. You'll add a card next — you won't be charged until day ${TRIAL_DAYS}. Cancel anytime.`
                 }
               </p>
             </div>

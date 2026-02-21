@@ -5,6 +5,9 @@ import { supabase } from '../lib/supabase'
 import type { Team } from '../types/database'
 import FlipCountdown from '../components/FlipCountdown'
 
+// Danny Brown promo deadline — same as TeamOnboarding
+const PROMO_DEADLINE = new Date('2026-02-21T20:00:00-05:00').getTime()
+
 export default function Landing() {
   const { user, profile } = useAuth()
   const [searchParams] = useSearchParams()
@@ -14,6 +17,15 @@ export default function Landing() {
   const [athleteCount, setAthleteCount] = useState<number | null>(null)
 
   const message = searchParams.get('message')
+  const [promoActive, setPromoActive] = useState(() => Date.now() < PROMO_DEADLINE)
+
+  // Re-check promo status every second so it updates live when countdown expires
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPromoActive(Date.now() < PROMO_DEADLINE)
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     async function fetchTeams() {
@@ -110,10 +122,12 @@ export default function Landing() {
             Manage rosters, assign meet entries, and keep coaches, athletes, and parents all on the same page.
           </p>
 
-          {/* Promo Countdown */}
-          <div className="mt-10 mb-2">
-            <FlipCountdown />
-          </div>
+          {/* Promo Countdown — only show when active */}
+          {promoActive && (
+            <div className="mt-10 mb-2">
+              <FlipCountdown />
+            </div>
+          )}
 
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center max-w-md sm:max-w-none mx-auto">
             <Link
@@ -130,7 +144,9 @@ export default function Landing() {
             </a>
           </div>
           <p className="mt-5 text-gray-400 text-sm">
-            Free 14-day trial · No credit card required
+            {promoActive
+              ? 'Create your team before the countdown ends for a free season'
+              : 'Free 14-day trial · $300/season · Cancel anytime'}
           </p>
         </div>
       </div>
@@ -173,11 +189,13 @@ export default function Landing() {
               to="/onboard"
               className="bg-brand-500 text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-brand-600 transition-colors shadow-lg"
             >
-              Start Your Team — Free
+              {promoActive ? 'Start Your Team — Free' : 'Start Your Team'}
             </Link>
           </div>
           <p className="mt-4 text-gray-400 text-sm">
-            $300/season after 14-day free trial · Cancel anytime
+            {promoActive
+              ? 'Free for a limited time — no credit card required'
+              : '$300/season after 14-day free trial · Cancel anytime'}
           </p>
         </div>
       </div>

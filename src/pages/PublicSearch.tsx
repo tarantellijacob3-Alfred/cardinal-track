@@ -21,6 +21,11 @@ export default function PublicSearch() {
   const { isFavorite, toggleFavorite } = useFavorites()
   const showFavorites = user && !guestMode
 
+  // Filters
+  const [genderFilter, setGenderFilter] = useState<string>('all')
+  const [gradeFilter, setGradeFilter] = useState<string>('all')
+  const [levelFilter, setLevelFilter] = useState<string>('all')
+
   // Derive selected athlete from URL param so browser back works
   const selectedAthleteId = searchParams.get('athlete')
   const selectedAthlete = useMemo(
@@ -65,16 +70,40 @@ export default function PublicSearch() {
     fetchData()
   }, [team?.id])
 
+  // Get unique grades for filter
+  const availableGrades = useMemo(() => {
+    const grades = new Set(athletes.map(a => a.grade).filter(Boolean))
+    return Array.from(grades).sort((a, b) => Number(a) - Number(b))
+  }, [athletes])
+
+  // Filter + search athletes
   const filteredAthletes = useMemo(() => {
-    if (!search || search.length < 2) return []
-    const q = search.toLowerCase()
-    return athletes.filter(a =>
-      a.first_name.toLowerCase().includes(q) ||
-      a.last_name.toLowerCase().includes(q) ||
-      `${a.last_name} ${a.first_name}`.toLowerCase().includes(q) ||
-      `${a.first_name} ${a.last_name}`.toLowerCase().includes(q)
-    ).slice(0, 20)
-  }, [athletes, search])
+    let result = athletes
+
+    // Apply filters
+    if (genderFilter !== 'all') {
+      result = result.filter(a => a.gender === genderFilter)
+    }
+    if (gradeFilter !== 'all') {
+      result = result.filter(a => String(a.grade) === gradeFilter)
+    }
+    if (levelFilter !== 'all') {
+      result = result.filter(a => a.level === levelFilter)
+    }
+
+    // Apply search
+    if (search && search.length >= 2) {
+      const q = search.toLowerCase()
+      result = result.filter(a =>
+        a.first_name.toLowerCase().includes(q) ||
+        a.last_name.toLowerCase().includes(q) ||
+        `${a.last_name} ${a.first_name}`.toLowerCase().includes(q) ||
+        `${a.first_name} ${a.last_name}`.toLowerCase().includes(q)
+      )
+    }
+
+    return result
+  }, [athletes, search, genderFilter, gradeFilter, levelFilter])
 
   const athleteEntries = useMemo(() => {
     if (!selectedAthlete) return []
@@ -99,12 +128,13 @@ export default function PublicSearch() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
+    <div className="space-y-4 max-w-2xl mx-auto">
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-navy-900">Athlete Search</h1>
-        <p className="text-gray-500 mt-1">Look up meet assignments for any athlete</p>
+        <h1 className="text-2xl font-bold text-navy-900">Find Athletes</h1>
+        <p className="text-gray-500 mt-1">{athletes.length} athletes · {team?.name || 'Team'}</p>
       </div>
 
+      {/* Search */}
       <SearchBar
         value={search}
         onChange={(v) => {
@@ -115,64 +145,135 @@ export default function PublicSearch() {
             setSearchParams({}, { replace: true })
           }
         }}
-        placeholder="Type athlete name..."
+        placeholder="Search by name..."
       />
 
-      {/* Search results */}
-      {search.length >= 2 && !selectedAthlete && (
+      {/* Filters */}
+      {!selectedAthlete && (
+        <div className="flex flex-wrap gap-2">
+          {/* Gender filter */}
+          {['all', 'Boys', 'Girls'].map(g => (
+            <button
+              key={g}
+              onClick={() => setGenderFilter(g === 'all' ? 'all' : g)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                genderFilter === g
+                  ? 'bg-navy-800 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {g === 'all' ? 'All' : g}
+            </button>
+          ))}
+
+          {/* Divider */}
+          <div className="w-px bg-gray-200 mx-1" />
+
+          {/* Level filter */}
+          {['all', 'Varsity', 'JV'].map(l => (
+            <button
+              key={l}
+              onClick={() => setLevelFilter(l === 'all' ? 'all' : l)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                levelFilter === l
+                  ? 'bg-navy-800 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {l === 'all' ? 'All Levels' : l}
+            </button>
+          ))}
+
+          {/* Divider */}
+          {availableGrades.length > 0 && <div className="w-px bg-gray-200 mx-1" />}
+
+          {/* Grade filter */}
+          {availableGrades.map(g => (
+            <button
+              key={g}
+              onClick={() => setGradeFilter(gradeFilter === String(g) ? 'all' : String(g))}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                gradeFilter === String(g)
+                  ? 'bg-navy-800 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {g}th
+            </button>
+          ))}
+
+          {/* Clear filters */}
+          {(genderFilter !== 'all' || gradeFilter !== 'all' || levelFilter !== 'all') && (
+            <button
+              onClick={() => { setGenderFilter('all'); setGradeFilter('all'); setLevelFilter('all') }}
+              className="px-3 py-1.5 rounded-full text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+            >
+              ✕ Clear
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Athlete list (shows by default) */}
+      {!selectedAthlete && (
         <div className="card">
           {filteredAthletes.length === 0 ? (
-            <p className="text-center text-gray-400 py-4">No athletes found for &quot;{search}&quot;</p>
+            <p className="text-center text-gray-400 py-4">No athletes found</p>
           ) : (
-            <div className="divide-y divide-gray-100">
-              {filteredAthletes.map(athlete => (
-                <div key={athlete.id} className="flex items-center min-h-[44px]">
-                  <button
-                    onClick={() => selectAthlete(athlete)}
-                    className="flex-1 flex items-center justify-between p-3 hover:bg-navy-50 rounded-lg transition-colors"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-navy-100 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium text-navy-700">
-                          {athlete.first_name[0]}{athlete.last_name[0]}
-                        </span>
-                      </div>
-                      <div className="text-left">
-                        <p className="font-medium text-navy-900">
-                          {athlete.last_name}, {athlete.first_name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {athlete.level} {athlete.gender}
-                          {athlete.grade ? ` · Grade ${athlete.grade}` : ''}
-                          {' · '}
-                          <span className="whitespace-nowrap">{(() => { const today = new Date().toISOString().split('T')[0]; const completedMeetIds = new Set(meets.filter(m => m.date <= today).map(m => m.id)); const c = new Set(allEntries.filter(e => e.athlete_id === athlete.id && completedMeetIds.has(e.meet_id)).map(e => e.meet_id)).size; return `${c} ${c === 1 ? 'meet' : 'meets'}`; })()}</span>
-                        </p>
-                      </div>
-                    </div>
-                    <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                  {showFavorites && (
+            <>
+              <p className="text-xs text-gray-400 mb-2 px-1">
+                {filteredAthletes.length} {filteredAthletes.length === 1 ? 'athlete' : 'athletes'}
+              </p>
+              <div className="divide-y divide-gray-100">
+                {filteredAthletes.map(athlete => (
+                  <div key={athlete.id} className="flex items-center min-h-[44px]">
                     <button
-                      onClick={(e) => { e.stopPropagation(); toggleFavorite(athlete.id) }}
-                      className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center flex-shrink-0"
-                      title={isFavorite(athlete.id) ? 'Remove from favorites' : 'Add to favorites'}
+                      onClick={() => selectAthlete(athlete)}
+                      className="flex-1 flex items-center justify-between p-3 hover:bg-navy-50 rounded-lg transition-colors"
                     >
-                      {isFavorite(athlete.id) ? (
-                        <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5 text-gray-300 hover:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                        </svg>
-                      )}
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-navy-100 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-medium text-navy-700">
+                            {athlete.first_name[0]}{athlete.last_name[0]}
+                          </span>
+                        </div>
+                        <div className="text-left">
+                          <p className="font-medium text-navy-900">
+                            {athlete.last_name}, {athlete.first_name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {athlete.level} · {athlete.gender}
+                            {athlete.grade ? ` · Grade ${athlete.grade}` : ''}
+                            {' · '}
+                            <span className="whitespace-nowrap">{(() => { const today = new Date().toISOString().split('T')[0]; const completedMeetIds = new Set(meets.filter(m => m.date <= today).map(m => m.id)); const c = new Set(allEntries.filter(e => e.athlete_id === athlete.id && completedMeetIds.has(e.meet_id)).map(e => e.meet_id)).size; return `${c} ${c === 1 ? 'meet' : 'meets'}`; })()}</span>
+                          </p>
+                        </div>
+                      </div>
+                      <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </button>
-                  )}
-                </div>
-              ))}
-            </div>
+                    {showFavorites && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleFavorite(athlete.id) }}
+                        className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center flex-shrink-0"
+                        title={isFavorite(athlete.id) ? 'Remove from favorites' : 'Add to favorites'}
+                      >
+                        {isFavorite(athlete.id) ? (
+                          <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5 text-gray-300 hover:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                          </svg>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}
@@ -227,7 +328,12 @@ export default function PublicSearch() {
                 const meetDate = new Date(meet.date + 'T00:00:00')
 
                 return (
-                  <div key={meetId} className="card">
+                  <Link
+                    key={meetId}
+                    to={teamPath(`/meets/${meetId}`)}
+                    state={{ from: 'athlete-search', returnUrl: `${teamPath('/search')}?athlete=${selectedAthlete.id}${search ? `&q=${search}` : ''}` }}
+                    className="card block hover:ring-2 hover:ring-navy-200 transition-all cursor-pointer"
+                  >
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <h3 className="font-semibold text-navy-900">{meet.name}</h3>
@@ -236,7 +342,12 @@ export default function PublicSearch() {
                           {meet.location && ` — ${meet.location}`}
                         </p>
                       </div>
-                      <span className="badge bg-navy-100 text-navy-700">{meetEntries.length} events</span>
+                      <div className="flex items-center gap-2">
+                        <span className="badge bg-navy-100 text-navy-700">{meetEntries.length} events</span>
+                        <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {meetEntries.map(entry => (
@@ -253,27 +364,11 @@ export default function PublicSearch() {
                         </span>
                       ))}
                     </div>
-                  </div>
+                  </Link>
                 )
               })}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Call to action */}
-      {!search && (
-        <div className="card text-center py-8">
-          <div className="w-16 h-16 bg-navy-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-navy-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <p className="text-gray-600">Search for an athlete to view their meet assignments</p>
-          <p className="text-sm text-gray-400 mt-2">
-            {athletes.length} athletes in the system
-          </p>
         </div>
       )}
     </div>

@@ -75,15 +75,15 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8">
+    <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-white">Dashboard Overview</h1>
-        <p className="text-gray-400 mt-1">TrackRoster platform at a glance</p>
+        <h1 className="text-xl md:text-2xl font-bold text-white">Dashboard Overview</h1>
+        <p className="text-gray-400 mt-1 text-sm">TrackRoster platform at a glance</p>
       </div>
 
       {/* Stats Grid */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
           <StatCard label="Total Teams" value={stats.totalTeams} color="indigo" icon="🏟️" />
           <StatCard label="Active Teams" value={stats.activeTeams} color="green" icon="✅" />
           <StatCard label="Total Users" value={stats.totalUsers} color="blue" icon="👥" />
@@ -93,57 +93,60 @@ export default function AdminDashboard() {
 
       {/* Revenue Overview */}
       {stats && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Revenue Overview</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gray-800/50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-green-400">{stats.subscribedTeams}</div>
-              <div className="text-sm text-gray-400">Stripe Subscriptions</div>
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 md:p-6">
+          <h2 className="text-base md:text-lg font-semibold text-white mb-3 md:mb-4">Revenue Overview</h2>
+          <div className="grid grid-cols-3 gap-2 md:gap-4">
+            <div className="bg-gray-800/50 rounded-lg p-3 md:p-4 text-center md:text-left">
+              <div className="text-xl md:text-2xl font-bold text-green-400">{stats.subscribedTeams}</div>
+              <div className="text-xs md:text-sm text-gray-400">Paid</div>
             </div>
-            <div className="bg-gray-800/50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-amber-400">{stats.grandfatheredTeams}</div>
-              <div className="text-sm text-gray-400">Grandfathered (Free)</div>
+            <div className="bg-gray-800/50 rounded-lg p-3 md:p-4 text-center md:text-left">
+              <div className="text-xl md:text-2xl font-bold text-amber-400">{stats.grandfatheredTeams}</div>
+              <div className="text-xs md:text-sm text-gray-400">Free</div>
             </div>
-            <div className="bg-gray-800/50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-gray-400">{stats.freeTeams}</div>
-              <div className="text-sm text-gray-400">No Subscription</div>
+            <div className="bg-gray-800/50 rounded-lg p-3 md:p-4 text-center md:text-left">
+              <div className="text-xl md:text-2xl font-bold text-gray-400">{stats.freeTeams}</div>
+              <div className="text-xs md:text-sm text-gray-400">No Sub</div>
             </div>
           </div>
         </div>
       )}
 
       {/* Recent Teams */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-        <h2 className="text-lg font-semibold text-white mb-4">Recent Team Signups</h2>
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 md:p-6">
+        <h2 className="text-base md:text-lg font-semibold text-white mb-3 md:mb-4">Recent Team Signups</h2>
         {recentTeams.length === 0 ? (
           <p className="text-gray-500">No teams yet</p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2 md:space-y-3">
             {recentTeams.map((team) => (
-              <div key={team.id} className="flex items-center justify-between bg-gray-800/50 rounded-lg p-3">
+              <div key={team.id} className="bg-gray-800/50 rounded-lg p-3">
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                    className="w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0"
                     style={{ backgroundColor: team.primary_color }}
                   >
                     {team.name.charAt(0)}
                   </div>
-                  <div>
-                    <div className="text-sm font-medium text-white">{team.name}</div>
-                    <div className="text-xs text-gray-500">{team.school_name} · /{team.slug}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-white truncate">{team.name}</div>
+                    <div className="text-xs text-gray-500 truncate">{team.school_name}</div>
                   </div>
+                  <span className="text-xs text-gray-500 shrink-0 hidden sm:inline">
+                    {new Date(team.created_at).toLocaleDateString()}
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 mt-2 ml-12 md:ml-[52px]">
                   {team.is_grandfathered && (
-                    <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full">Grandfathered</span>
+                    <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full">Free</span>
                   )}
                   {team.stripe_subscription_id && (
-                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">Subscribed</span>
+                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">Paid</span>
                   )}
                   {!team.active && (
                     <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full">Inactive</span>
                   )}
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-500 sm:hidden">
                     {new Date(team.created_at).toLocaleDateString()}
                   </span>
                 </div>
@@ -154,33 +157,35 @@ export default function AdminDashboard() {
       </div>
 
       {/* Recent Users */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-        <h2 className="text-lg font-semibold text-white mb-4">Recent Users</h2>
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 md:p-6">
+        <h2 className="text-base md:text-lg font-semibold text-white mb-3 md:mb-4">Recent Users</h2>
         {recentUsers.length === 0 ? (
           <p className="text-gray-500">No users yet</p>
         ) : (
           <div className="space-y-2">
             {recentUsers.map((user) => (
-              <div key={user.id} className="flex items-center justify-between bg-gray-800/50 rounded-lg p-3">
-                <div>
-                  <div className="text-sm font-medium text-white">{user.full_name || 'Unnamed'}</div>
-                  <div className="text-xs text-gray-500">{user.email}</div>
+              <div key={user.id} className="bg-gray-800/50 rounded-lg p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium text-white truncate">{user.full_name || 'Unnamed'}</div>
+                    <div className="text-xs text-gray-500 truncate">{user.email}</div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${
+                      user.role === 'coach' ? 'bg-blue-500/20 text-blue-400' :
+                      user.role === 'parent' ? 'bg-purple-500/20 text-purple-400' :
+                      user.role === 'athlete' ? 'bg-green-500/20 text-green-400' :
+                      'bg-gray-500/20 text-gray-400'
+                    }`}>
+                      {user.role}
+                    </span>
+                    {user.is_super_admin && (
+                      <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full">SA</span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-0.5 text-xs rounded-full ${
-                    user.role === 'coach' ? 'bg-blue-500/20 text-blue-400' :
-                    user.role === 'parent' ? 'bg-purple-500/20 text-purple-400' :
-                    user.role === 'athlete' ? 'bg-green-500/20 text-green-400' :
-                    'bg-gray-500/20 text-gray-400'
-                  }`}>
-                    {user.role}
-                  </span>
-                  {user.is_super_admin && (
-                    <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full">Super Admin</span>
-                  )}
-                  <span className="text-xs text-gray-500">
-                    {new Date(user.created_at).toLocaleDateString()}
-                  </span>
+                <div className="text-xs text-gray-500 mt-1">
+                  Joined {new Date(user.created_at).toLocaleDateString()}
                 </div>
               </div>
             ))}
@@ -200,14 +205,14 @@ function StatCard({ label, value, color, icon }: { label: string; value: number;
   }
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-      <div className="flex items-center gap-2 mb-2">
-        <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${colorMap[color]}`}>
+    <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 md:p-4">
+      <div className="flex items-center gap-1.5 md:gap-2 mb-1.5 md:mb-2">
+        <span className={`w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center text-xs md:text-sm ${colorMap[color]}`}>
           {icon}
         </span>
-        <span className="text-xs text-gray-500 uppercase tracking-wide">{label}</span>
+        <span className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wide leading-tight">{label}</span>
       </div>
-      <div className="text-3xl font-bold text-white">{value}</div>
+      <div className="text-2xl md:text-3xl font-bold text-white">{value}</div>
     </div>
   )
 }

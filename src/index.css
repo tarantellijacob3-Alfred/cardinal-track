@@ -118,3 +118,33 @@
   0% { transform: rotateX(90deg); }
   100% { transform: rotateX(0deg); }
 }
+
+/* Team switch morph animations */
+@keyframes logoMorph {
+  0% {
+    transform: scale(0.5) rotate(-10deg);
+    opacity: 0;
+    filter: blur(4px);
+  }
+  50% {
+    transform: scale(1.15) rotate(2deg);
+    opacity: 0.8;
+    filter: blur(0px);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    filter: blur(0px);
+  }
+}
+
+@keyframes teamMorph {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

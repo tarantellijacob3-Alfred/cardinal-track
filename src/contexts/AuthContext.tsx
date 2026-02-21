@@ -27,6 +27,29 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 const ADMIN_EMAILS = ['tarantellijacob@gmail.com', 'ttarantelli@gmail.com']
 const SUPER_ADMIN_EMAILS = ['tarantellijacob@gmail.com']
 
+/**
+ * Client-side rate limiter for auth operations.
+ * Prevents rapid-fire login/signup attempts.
+ */
+const AUTH_RATE_LIMIT = {
+  maxAttempts: 5,
+  windowMs: 60 * 1000, // 1 minute
+  attempts: [] as number[],
+}
+
+function checkRateLimit(): boolean {
+  const now = Date.now()
+  // Clean old attempts outside the window
+  AUTH_RATE_LIMIT.attempts = AUTH_RATE_LIMIT.attempts.filter(
+    t => now - t < AUTH_RATE_LIMIT.windowMs
+  )
+  if (AUTH_RATE_LIMIT.attempts.length >= AUTH_RATE_LIMIT.maxAttempts) {
+    return false // Rate limited
+  }
+  AUTH_RATE_LIMIT.attempts.push(now)
+  return true
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
@@ -70,34 +93,117 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s)
-      setUser(s?.user ?? null)
-      if (s?.user) {
-        fetchProfile(s.user.id)
+    let mounted = true
+    let retryCount = 0
+    const MAX_RETRIES = 2
+
+    async function initSession() {
+      try {
+        const { data: { session: s }, error } = await supabase.auth.getSession()
+
+        if (!mounted) return
+
+        if (error) {
+          console.warn('Failed to get session:', error.message)
+          // If session fetch fails, try refreshing
+          if (retryCount < MAX_RETRIES) {
+            retryCount++
+            const { data: refreshData } = await supabase.auth.refreshSession()
+            if (mounted && refreshData.session) {
+              setSession(refreshData.session)
+              setUser(refreshData.session.user)
+              await fetchProfile(refreshData.session.user.id)
+              setLoading(false)
+              return
+            }
+          }
+          // Give up — set to logged-out state
+          setSession(null)
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
+          return
+        }
+
+        setSession(s)
+        setUser(s?.user ?? null)
+        if (s?.user) {
+          await fetchProfile(s.user.id)
+        }
+        setLoading(false)
+      } catch (err) {
+        console.error('Auth init error:', err)
+        if (mounted) {
+          setLoading(false)
+        }
       }
-      setLoading(false)
-    })
+    }
+
+    initSession()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (!mounted) return
       setSession(s)
       setUser(s?.user ?? null)
       if (s?.user) {
         fetchProfile(s.user.id)
       } else {
         setProfile(null)
+        setMemberships([])
       }
     })
 
-    return () => subscription.unsubscribe()
+    // Visibility change handler: re-validate session when tab becomes visible
+    // This fixes the "stale tab" problem when returning to a background tab
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        supabase.auth.getSession().then(({ data: { session: s }, error }) => {
+          if (!mounted) return
+          if (error || !s) {
+            // Session expired while tab was hidden
+            supabase.auth.refreshSession().then(({ data: refreshData }) => {
+              if (!mounted) return
+              if (refreshData.session) {
+                setSession(refreshData.session)
+                setUser(refreshData.session.user)
+                fetchProfile(refreshData.session.user.id)
+              } else {
+                // Fully expired — sign out cleanly
+                setSession(null)
+                setUser(null)
+                setProfile(null)
+                setMemberships([])
+              }
+            })
+          } else {
+            setSession(s)
+            setUser(s.user)
+          }
+        })
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [])
 
   async function signIn(email: string, password: string) {
+    if (!checkRateLimit()) {
+      return { error: new Error('Too many attempts. Please wait a minute and try again.') }
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error: error as Error | null }
   }
 
   async function signUp(email: string, password: string, fullName: string, role: string) {
+    if (!checkRateLimit()) {
+      return { error: new Error('Too many attempts. Please wait a minute and try again.') }
+    }
     const { data, error } = await supabase.auth.signUp({
       email,
       password,

@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Meet, MeetInsert, MeetUpdate } from '../types/database'
 import { useTeam } from './useTeam'
+import { useTrialStatus } from './useTrialStatus'
 
 export function useMeets(seasonFilter?: string | null) {
   const [meets, setMeets] = useState<Meet[]>([])
   const [loading, setLoading] = useState(true)
   const { teamId } = useTeam()
+  const { canEdit } = useTrialStatus()
 
   const fetch = useCallback(async (silent = false) => {
     if (!teamId) {
@@ -40,6 +42,7 @@ export function useMeets(seasonFilter?: string | null) {
   }, [fetch])
 
   async function addMeet(meet: Omit<MeetInsert, 'team_id'>) {
+    if (!canEdit) return { data: null, error: new Error('Trial expired. Subscribe to add meets.') }
     if (!teamId) return { data: null, error: new Error('No team context') }
 
     const { data, error } = await supabase
@@ -58,6 +61,7 @@ export function useMeets(seasonFilter?: string | null) {
   }
 
   async function updateMeet(id: string, updates: MeetUpdate) {
+    if (!canEdit) return { data: null, error: new Error('Trial expired. Subscribe to edit meets.') }
     const { data, error } = await supabase
       .from('meets')
       .update(updates as Record<string, unknown>)
@@ -73,6 +77,7 @@ export function useMeets(seasonFilter?: string | null) {
   }
 
   async function deleteMeet(id: string) {
+    if (!canEdit) return { error: new Error('Trial expired. Subscribe to delete meets.') }
     const { error, count } = await supabase
       .from('meets')
       .delete({ count: 'exact' })

@@ -10,6 +10,14 @@ export default function Login() {
   const { signIn } = useAuth()
   const navigate = useNavigate()
 
+  const goBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1)
+    } else {
+      navigate('/')
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -28,6 +36,14 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
+        <div className="mb-6">
+          <button
+            onClick={goBack}
+            className="text-sm text-gray-500 hover:text-navy-800 font-medium flex items-center gap-1"
+          >
+            ← Back
+          </button>
+        </div>
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-brand-500 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-navy-900 font-bold text-xl">BS</span>
@@ -55,7 +71,12 @@ export default function Login() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700">Password</label>
+              <Link to="/forgot-password" className="text-xs text-navy-600 hover:text-navy-800 font-medium">
+                Forgot password?
+              </Link>
+            </div>
             <input
               type="password"
               value={password}

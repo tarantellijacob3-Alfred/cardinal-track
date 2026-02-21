@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useMeet, useMeets } from '../hooks/useMeets'
 import { useEvents } from '../hooks/useEvents'
@@ -317,6 +317,9 @@ export default function MeetDetail() {
   const { events, loading: eventsLoading } = useEvents()
   const { athletes } = useAthletes()
   const teamPath = useTeamPath()
+  const location = useLocation()
+  const fromAthleteSearch = (location.state as { from?: string; returnUrl?: string })?.from === 'athlete-search'
+  const athleteSearchReturnUrl = (location.state as { returnUrl?: string })?.returnUrl
   const {
     entries, loading: entriesLoading,
     addEntry, removeEntry, refetch: refetchEntries,
@@ -583,8 +586,11 @@ export default function MeetDetail() {
 
       {/* Header */}
       <div className="no-print">
-        <Link to={teamPath('/meets')} className="text-sm text-navy-600 hover:text-navy-800 font-medium mb-2 inline-block min-h-[44px] flex items-center">
-          ← Back to Meets
+        <Link
+          to={fromAthleteSearch && athleteSearchReturnUrl ? athleteSearchReturnUrl : teamPath('/meets')}
+          className="text-sm text-navy-600 hover:text-navy-800 font-medium mb-2 inline-block min-h-[44px] flex items-center"
+        >
+          {fromAthleteSearch ? '← Back to Athlete' : '← Back to Meets'}
         </Link>
 
         <div className="bg-gradient-to-br from-navy-800 to-navy-950 rounded-2xl p-6 text-white overflow-visible">

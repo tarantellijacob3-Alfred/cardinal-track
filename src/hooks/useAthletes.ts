@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Athlete, AthleteInsert, AthleteUpdate } from '../types/database'
 import { useTeam } from './useTeam'
+import { useTrialStatus } from './useTrialStatus'
 
 export function useAthletes() {
   const [athletes, setAthletes] = useState<Athlete[]>([])
   const [loading, setLoading] = useState(true)
   const { teamId } = useTeam()
+  const { canEdit } = useTrialStatus()
 
   const fetch = useCallback(async (silent = false) => {
     if (!teamId) {
@@ -34,6 +36,7 @@ export function useAthletes() {
   }, [fetch])
 
   async function addAthlete(athlete: Omit<AthleteInsert, 'team_id'>) {
+    if (!canEdit) return { data: null, error: new Error('Trial expired. Subscribe to add athletes.') }
     if (!teamId) return { data: null, error: new Error('No team context') }
 
     const { data, error } = await supabase
@@ -52,6 +55,7 @@ export function useAthletes() {
   }
 
   async function updateAthlete(id: string, updates: AthleteUpdate) {
+    if (!canEdit) return { data: null, error: new Error('Trial expired. Subscribe to edit athletes.') }
     const { data, error } = await supabase
       .from('athletes')
       .update(updates as Record<string, unknown>)
@@ -67,6 +71,7 @@ export function useAthletes() {
   }
 
   async function deleteAthlete(id: string) {
+    if (!canEdit) return { error: new Error('Trial expired. Subscribe to delete athletes.') }
     const { error, count } = await supabase
       .from('athletes')
       .delete({ count: 'exact' })
@@ -88,6 +93,7 @@ export function useAthletes() {
   }
 
   async function bulkAddAthletes(newAthletes: Omit<AthleteInsert, 'team_id'>[]) {
+    if (!canEdit) return { added: [], errors: [{ index: 0, error: 'Trial expired. Subscribe to add athletes.' }] }
     if (!teamId) return { added: [], errors: [{ index: 0, error: 'No team context' }] }
 
     const results: Athlete[] = []

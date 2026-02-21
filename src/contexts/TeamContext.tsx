@@ -48,18 +48,34 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       setLoading(true)
       setError(null)
 
-      const { data, error: fetchError } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('slug', slug!)
-        .eq('active', true)
-        .single()
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('slug', slug!)
+          .eq('active', true)
+          .single()
 
-      if (fetchError || !data) {
+        if (fetchError) {
+          // Distinguish between "not found" and "network/auth error"
+          if (fetchError.code === 'PGRST116') {
+            setTeam(null)
+            setError('Team not found')
+          } else {
+            console.warn('Team fetch error:', fetchError.message)
+            setTeam(null)
+            setError('Failed to load team. Please refresh the page.')
+          }
+        } else if (!data) {
+          setTeam(null)
+          setError('Team not found')
+        } else {
+          setTeam(data as Team)
+        }
+      } catch (err) {
+        console.error('Team fetch exception:', err)
         setTeam(null)
-        setError('Team not found')
-      } else {
-        setTeam(data as Team)
+        setError('Connection error. Please check your internet and refresh.')
       }
       setLoading(false)
     }
