@@ -83,24 +83,11 @@ export default function TeamOnboarding() {
     return () => clearTimeout(t)
   }, [resendCooldown])
 
-  /** Poll for email verification — listens for auth state change (user clicks confirm link) */
+  /** Poll for email verification by trying to sign in periodically */
   const startVerificationPolling = useCallback(() => {
-    // When user clicks the confirmation link, Supabase processes it and
-    // if they return to this page, onAuthStateChange fires with SIGNED_IN.
-    // We also try signing in periodically in case they confirmed in another tab.
     if (pollRef.current) clearInterval(pollRef.current)
     
-    // Listen for auth state change (user returns from confirm link)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
-        subscription.unsubscribe()
-        if (pollRef.current) clearInterval(pollRef.current)
-        pollRef.current = null
-        setStep('team-info')
-      }
-    })
-
-    // Also poll by trying to sign in (in case they verified in another tab/device)
+    // Poll by trying to sign in — will fail with "email_not_confirmed" until verified
     pollRef.current = setInterval(async () => {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -108,17 +95,17 @@ export default function TeamOnboarding() {
           password: coach.password,
         })
         if (!error && data?.session) {
-          // Verified! They can sign in now.
+          // Email verified — they can sign in now
           if (pollRef.current) clearInterval(pollRef.current)
           pollRef.current = null
-          subscription.unsubscribe()
+          await refreshProfile()
           setStep('team-info')
         }
       } catch {
         // Expected to fail until email is confirmed
       }
-    }, 5000) // try every 5 seconds
-  }, [coach.email, coach.password])
+    }, 4000) // try every 4 seconds
+  }, [coach.email, coach.password, refreshProfile])
 
   /** Resend verification email */
   const handleResendVerification = async () => {
@@ -164,29 +151,28 @@ export default function TeamOnboarding() {
         })
         if (signUpErr) throw signUpErr
 
-        // When "Confirm email" is ON in Supabase:
-        // - data.session will be null (no session until verified)
-        // - data.user will exist but email not confirmed
-        // When "Confirm email" is OFF:
-        // - data.session will be set (auto-confirmed)
-        const needsVerification = !data.session
+        // Always require email verification for new signups.
+        // Even if Supabase returns a session, we force the verification step.
+        // The user must click the email link before proceeding.
+        console.log('[Onboarding] signUp result:', {
+          hasSession: !!data.session,
+          hasUser: !!data.user,
+          emailConfirmed: data.user?.email_confirmed_at,
+          identities: data.user?.identities?.length,
+        })
         
-        if (needsVerification) {
-          // Email not confirmed yet — show verification screen
-          setStep('verify-email')
-          startVerificationPolling()
-        } else if (data.user) {
-          // Already confirmed (confirm email is off in Supabase)
-          await supabase
-            .from('profiles')
-            .update({
-              role: 'coach',
-              approved: true,
-              full_name: coach.fullName,
-            } as Record<string, unknown>)
-            .eq('id', data.user.id)
-          setStep('team-info')
+        // Check if this is a real new user (has identities) vs duplicate email (empty identities)
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+          throw new Error('An account with this email already exists. Try signing in instead.')
         }
+        
+        // Force verification screen — sign out any auto-created session
+        if (data.session) {
+          await supabase.auth.signOut()
+        }
+        
+        setStep('verify-email')
+        startVerificationPolling()
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
