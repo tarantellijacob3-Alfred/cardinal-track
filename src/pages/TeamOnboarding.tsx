@@ -103,17 +103,9 @@ export default function TeamOnboarding() {
         throw new Error(data.error || 'Verification failed')
       }
 
-      if (data.session) {
-        // Set the session from the edge function response
-        await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        })
-      } else {
-        // Fallback: sign in with password (email is now confirmed)
-        const { error: signInErr } = await signIn(coach.email, coach.password)
-        if (signInErr) throw signInErr
-      }
+      // Email is confirmed, now sign in to get a valid session
+      const { error: signInErr } = await signIn(coach.email, coach.password)
+      if (signInErr) throw signInErr
 
       await refreshProfile()
       setStep('team-info')
@@ -238,7 +230,7 @@ export default function TeamOnboarding() {
     }
   }
 
-  /* ── Step 4: Create team + redirect to Stripe ── */
+  /* ── Step 4: Redirect to Stripe (team created by webhook after payment) ── */
   const handleCreateTeamAndPay = async () => {
     setError('')
     setLoading(true)
@@ -249,7 +241,7 @@ export default function TeamOnboarding() {
 
       const slug = teamInfo.slug || slugify(teamInfo.schoolName)
 
-      // Upload logo if provided
+      // Upload logo if provided (before payment - stored with slug as key)
       let logoUrl: string | null = null
       if (teamInfo.logoFile) {
         const fileExt = teamInfo.logoFile.name.split('.').pop()
@@ -267,92 +259,94 @@ export default function TeamOnboarding() {
       // Check if Danny Brown promo is active
       const promo = isPromoActive()
 
-      // Calculate trial expiration (14 days from now) — not needed if promo
-      const trialExpires = new Date()
-      trialExpires.setDate(trialExpires.getDate() + TRIAL_DAYS)
-
-      // Create the team
-      const { data: team, error: teamErr } = await supabase
-        .from('teams')
-        .insert({
-          name: teamInfo.teamName,
-          slug,
-          school_name: teamInfo.schoolName,
-          logo_url: logoUrl,
-          primary_color: teamInfo.primaryColor,
-          secondary_color: teamInfo.secondaryColor,
-          is_grandfathered: promo,
-          active: true,
-          stripe_subscription_id: null,
-          trial_expires_at: promo ? null : trialExpires.toISOString(),
-          created_by: currentUser.user.id,
-        } as Record<string, unknown>)
-        .select()
-        .single()
-
-      if (teamErr || !team) throw teamErr || new Error('Failed to create team')
-
-      // Add creator as coach + owner in team_members
-      await supabase
-        .from('team_members')
-        .insert({
-          profile_id: currentUser.user.id,
-          team_id: (team as { id: string }).id,
-          role: 'coach',
-          approved: true,
-          is_owner: true,
-        } as Record<string, unknown>)
-
-      // Also update profiles.team_id for backward compat
-      await supabase
-        .from('profiles')
-        .update({
-          team_id: (team as { id: string }).id,
-          role: 'coach',
-          approved: true,
-        } as Record<string, unknown>)
-        .eq('id', currentUser.user.id)
-
-      await refreshProfile()
-      setCreatedSlug(slug)
-
       if (promo) {
-        // Promo: go straight to dashboard (free season, no payment needed)
+        // PROMO FLOW: Create team immediately (no payment needed)
+        const trialExpires = new Date()
+        trialExpires.setDate(trialExpires.getDate() + TRIAL_DAYS)
+
+        const { data: team, error: teamErr } = await supabase
+          .from('teams')
+          .insert({
+            name: teamInfo.teamName,
+            slug,
+            school_name: teamInfo.schoolName,
+            logo_url: logoUrl,
+            primary_color: teamInfo.primaryColor,
+            secondary_color: teamInfo.secondaryColor,
+            is_grandfathered: true,
+            active: true,
+            stripe_subscription_id: null,
+            trial_expires_at: null,
+            created_by: currentUser.user.id,
+          } as Record<string, unknown>)
+          .select()
+          .single()
+
+        if (teamErr || !team) throw teamErr || new Error('Failed to create team')
+
+        // Add creator as coach + owner
+        await supabase
+          .from('team_members')
+          .insert({
+            profile_id: currentUser.user.id,
+            team_id: (team as { id: string }).id,
+            role: 'coach',
+            approved: true,
+            is_owner: true,
+          } as Record<string, unknown>)
+
+        await supabase
+          .from('profiles')
+          .update({
+            team_id: (team as { id: string }).id,
+            role: 'coach',
+            approved: true,
+          } as Record<string, unknown>)
+          .eq('id', currentUser.user.id)
+
+        await refreshProfile()
         navigate(`/t/${slug}`)
       } else {
-        // Non-promo: redirect to Stripe checkout with 14-day trial
-        try {
-          const { data: sessionData } = await supabase.auth.getSession()
-          const token = sessionData?.session?.access_token
-          if (!token) throw new Error('No auth token')
+        // PAID FLOW: Redirect to Stripe, team created by webhook after payment
+        const { data: sessionData } = await supabase.auth.getSession()
+        const token = sessionData?.session?.access_token
+        if (!token) throw new Error('No auth token')
 
-          const res = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                teamId: (team as { id: string }).id,
-                trial: true,
-              }),
-            }
-          )
-
-          const { url, error: checkoutErr } = await res.json()
-          if (checkoutErr) throw new Error(checkoutErr)
-
-          if (url) {
-            window.location.href = url
-          } else {
-            throw new Error('Could not create checkout session')
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({
+              // Pass team data - team will be created by webhook
+              teamName: teamInfo.teamName,
+              schoolName: teamInfo.schoolName,
+              slug,
+              primaryColor: teamInfo.primaryColor,
+              secondaryColor: teamInfo.secondaryColor,
+              logoUrl,
+              trial: true,
+            }),
           }
-        } catch (stripeErr) {
-          console.error('Stripe checkout redirect failed:', stripeErr)
-          // Don't fallback - payment is required
-          throw new Error('Payment setup failed. Please try again.')
+        )
+
+        if (!res.ok) {
+          const errText = await res.text()
+          console.error('Checkout API error:', res.status, errText)
+          throw new Error(`API error ${res.status}: ${errText}`)
+        }
+
+        const { url, error: checkoutErr } = await res.json()
+        if (checkoutErr) throw new Error(checkoutErr)
+
+        if (url) {
+          window.location.href = url
+        } else {
+          throw new Error('Could not create checkout session')
         }
       }
     } catch (err: unknown) {

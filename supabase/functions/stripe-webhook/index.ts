@@ -1,5 +1,6 @@
 // Stripe webhook handler for TrackRoster
 // Handles checkout completion, subscription lifecycle, and trial management
+// NEW: Creates team on checkout.session.completed if mode=new_team
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@17?target=deno'
@@ -14,6 +15,8 @@ const supabase = createClient(
 )
 
 const WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET')!
+
+const TRIAL_DAYS = 14
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
@@ -41,73 +44,127 @@ Deno.serve(async (req) => {
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session
-
-      const teamId = session.client_reference_id
-      if (!teamId) {
-        console.error('No client_reference_id in checkout session')
-        break
-      }
-
+      const metadata = session.metadata || {}
       const subscriptionId = session.subscription as string | null
-      const paymentIntentId = session.payment_intent as string | null
 
-      console.log(`Checkout completed for team: ${teamId}, subscription: ${subscriptionId}`)
-
-      // Check if this subscription has a trial
-      let hasTrial = false
+      // Determine trial end date
       let trialEnd: Date | null = null
       if (subscriptionId) {
         const sub = await stripe.subscriptions.retrieve(subscriptionId)
         if (sub.trial_end) {
-          hasTrial = true
           trialEnd = new Date(sub.trial_end * 1000)
         }
       }
 
-      if (hasTrial && trialEnd) {
-        // Trial subscription: set subscription ID + update trial_expires_at to match Stripe's trial end
-        // Team gets full access during trial (stripe_subscription_id is set = isPaid in useTrialStatus)
-        const { error } = await supabase
+      if (metadata.mode === 'new_team') {
+        // NEW TEAM FLOW: Create the team now that payment/trial has started
+        console.log(`Creating new team: ${metadata.team_name} (${metadata.slug})`)
+
+        const trialExpires = trialEnd || new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000)
+
+        // Create the team
+        const { data: team, error: teamErr } = await supabase
           .from('teams')
-          .update({
+          .insert({
+            name: metadata.team_name,
+            slug: metadata.slug,
+            school_name: metadata.school_name,
+            logo_url: metadata.logo_url || null,
+            primary_color: metadata.primary_color || '#1e3a5f',
+            secondary_color: metadata.secondary_color || '#c5a900',
             stripe_subscription_id: subscriptionId,
-            trial_expires_at: trialEnd.toISOString(),
+            is_grandfathered: false,
             active: true,
+            trial_expires_at: trialEnd ? trialEnd.toISOString() : trialExpires.toISOString(),
+            created_by: metadata.user_id,
           })
-          .eq('id', teamId)
+          .select()
+          .single()
 
-        if (error) {
-          console.error('Failed to update team (trial):', error)
-          return new Response('Database update failed', { status: 500 })
+        if (teamErr || !team) {
+          console.error('Failed to create team:', teamErr)
+          return new Response('Failed to create team', { status: 500 })
         }
-        console.log(`Team ${teamId} started trial until ${trialEnd.toISOString()}`)
-      } else {
-        // Direct payment (no trial): mark as fully paid
-        const { error } = await supabase
-          .from('teams')
+
+        console.log(`Team created: ${team.id}`)
+
+        // Add user as coach + owner
+        const { error: memberErr } = await supabase
+          .from('team_members')
+          .insert({
+            profile_id: metadata.user_id,
+            team_id: team.id,
+            role: 'coach',
+            approved: true,
+            is_owner: true,
+          })
+
+        if (memberErr) {
+          console.error('Failed to add team member:', memberErr)
+        }
+
+        // Update profile
+        await supabase
+          .from('profiles')
           .update({
-            stripe_subscription_id: subscriptionId || paymentIntentId || `paid_${session.id}`,
-            trial_expires_at: null,
-            active: true,
+            team_id: team.id,
+            role: 'coach',
+            approved: true,
           })
-          .eq('id', teamId)
+          .eq('id', metadata.user_id)
 
-        if (error) {
-          console.error('Failed to update team:', error)
-          return new Response('Database update failed', { status: 500 })
+        console.log(`Team ${team.id} created with trial until ${trialExpires.toISOString()}`)
+
+      } else {
+        // EXISTING TEAM FLOW: Update team with subscription
+        const teamId = session.client_reference_id || metadata.team_id
+        if (!teamId) {
+          console.error('No team_id in checkout session')
+          break
         }
-        console.log(`Team ${teamId} activated with direct payment`)
+
+        console.log(`Checkout completed for existing team: ${teamId}`)
+
+        if (trialEnd) {
+          const { error } = await supabase
+            .from('teams')
+            .update({
+              stripe_subscription_id: subscriptionId,
+              trial_expires_at: trialEnd.toISOString(),
+              active: true,
+            })
+            .eq('id', teamId)
+
+          if (error) {
+            console.error('Failed to update team (trial):', error)
+            return new Response('Database update failed', { status: 500 })
+          }
+          console.log(`Team ${teamId} started trial until ${trialEnd.toISOString()}`)
+        } else {
+          const { error } = await supabase
+            .from('teams')
+            .update({
+              stripe_subscription_id: subscriptionId || `paid_${session.id}`,
+              trial_expires_at: null,
+              active: true,
+            })
+            .eq('id', teamId)
+
+          if (error) {
+            console.error('Failed to update team:', error)
+            return new Response('Database update failed', { status: 500 })
+          }
+          console.log(`Team ${teamId} activated with direct payment`)
+        }
       }
       break
     }
 
     case 'invoice.paid': {
-      // Fires when trial converts to paid, or on renewal
       const invoice = event.data.object as Stripe.Invoice
       const subscriptionId = invoice.subscription as string | null
       if (!subscriptionId) break
 
-      // Find the team with this subscription
       const { data: team } = await supabase
         .from('teams')
         .select('id')
@@ -115,7 +172,6 @@ Deno.serve(async (req) => {
         .single()
 
       if (team) {
-        // Clear trial — they've actually paid now
         await supabase
           .from('teams')
           .update({
@@ -130,18 +186,12 @@ Deno.serve(async (req) => {
     }
 
     case 'customer.subscription.deleted': {
-      // Subscription cancelled — remove subscription ID
-      // Data is preserved, team goes to expired/view-only state
       const subscription = event.data.object as Stripe.Subscription
       const subId = subscription.id
 
       const { error } = await supabase
         .from('teams')
-        .update({
-          stripe_subscription_id: null,
-          // Don't set trial_expires_at — they're just expired now
-          // Don't set active: false — data stays, just view-only
-        })
+        .update({ stripe_subscription_id: null })
         .eq('stripe_subscription_id', subId)
 
       if (error) {
@@ -153,15 +203,12 @@ Deno.serve(async (req) => {
     }
 
     case 'customer.subscription.updated': {
-      // Handle trial ending without payment (card declined, etc.)
       const subscription = event.data.object as Stripe.Subscription
       
       if (subscription.status === 'past_due' || subscription.status === 'unpaid') {
         const { error } = await supabase
           .from('teams')
-          .update({
-            stripe_subscription_id: null, // Remove — they haven't paid
-          })
+          .update({ stripe_subscription_id: null })
           .eq('stripe_subscription_id', subscription.id)
 
         if (error) {

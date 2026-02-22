@@ -1,6 +1,6 @@
 // Creates a Stripe Checkout Session for TrackRoster team subscription
-// Called from the frontend when a coach clicks "Subscribe"
-// Supports trial mode (14-day free trial with card upfront)
+// Team is NOT created until payment succeeds (via webhook)
+// All team data is passed via Stripe metadata
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@17?target=deno'
@@ -47,58 +47,107 @@ Deno.serve(async (req) => {
       return new Response('Unauthorized', { status: 401, headers: corsHeaders })
     }
 
-    const { teamId, trial } = await req.json()
-    if (!teamId) {
-      return new Response('Missing teamId', { status: 400, headers: corsHeaders })
+    const body = await req.json()
+    
+    // Support both old flow (teamId) and new flow (team data)
+    if (body.teamId) {
+      // OLD FLOW: Team already exists, just create checkout for it
+      const { teamId, trial } = body
+
+      // Verify user is a coach/owner of this team
+      const { data: membership } = await supabase
+        .from('team_members')
+        .select('*')
+        .eq('profile_id', user.id)
+        .eq('team_id', teamId)
+        .single()
+
+      if (!membership || membership.role !== 'coach') {
+        return new Response('Not authorized for this team', { status: 403, headers: corsHeaders })
+      }
+
+      // Get team info
+      const { data: team } = await supabase
+        .from('teams')
+        .select('name, school_name, slug')
+        .eq('id', teamId)
+        .single()
+
+      const teamSlug = team?.slug || teamId
+
+      const sessionParams: Stripe.Checkout.SessionCreateParams = {
+        payment_method_types: ['card'],
+        mode: 'subscription',
+        line_items: [{ price: PRICE_ID, quantity: 1 }],
+        client_reference_id: teamId,
+        customer_email: user.email,
+        metadata: {
+          mode: 'existing_team',
+          team_id: teamId,
+          team_name: team?.name || '',
+          school_name: team?.school_name || '',
+        },
+        success_url: `${req.headers.get('origin')}/t/${teamSlug}?payment=success`,
+        cancel_url: `${req.headers.get('origin')}/t/${teamSlug}?payment=cancelled`,
+      }
+
+      if (trial) {
+        sessionParams.subscription_data = { trial_period_days: TRIAL_DAYS }
+      }
+
+      const session = await stripe.checkout.sessions.create(sessionParams)
+      return new Response(
+        JSON.stringify({ url: session.url }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
     }
 
-    // Verify user is a coach/owner of this team
-    const { data: membership } = await supabase
-      .from('team_members')
-      .select('*')
-      .eq('profile_id', user.id)
-      .eq('team_id', teamId)
-      .single()
+    // NEW FLOW: Team data passed, create team on webhook after payment
+    const { teamName, schoolName, slug, primaryColor, secondaryColor, logoUrl, trial } = body
 
-    if (!membership || membership.role !== 'coach') {
-      return new Response('Not authorized for this team', { status: 403, headers: corsHeaders })
+    if (!teamName || !schoolName || !slug) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields: teamName, schoolName, slug' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
     }
 
-    // Get team info for the checkout session
-    const { data: team } = await supabase
+    // Validate slug is available
+    const { data: existingTeam } = await supabase
       .from('teams')
-      .select('name, school_name, slug')
-      .eq('id', teamId)
+      .select('id')
+      .eq('slug', slug)
       .single()
 
-    const teamSlug = team?.slug || teamId
+    if (existingTeam) {
+      return new Response(
+        JSON.stringify({ error: 'Slug already taken' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
 
-    // Build checkout session params
+    // Build checkout session with team data in metadata
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ['card'],
       mode: 'subscription',
-      line_items: [
-        {
-          price: PRICE_ID,
-          quantity: 1,
-        },
-      ],
-      client_reference_id: teamId,
+      line_items: [{ price: PRICE_ID, quantity: 1 }],
       customer_email: user.email,
       metadata: {
-        team_id: teamId,
-        team_name: team?.name || '',
-        school_name: team?.school_name || '',
+        mode: 'new_team',
+        user_id: user.id,
+        team_name: teamName,
+        school_name: schoolName,
+        slug: slug,
+        primary_color: primaryColor || '#1e3a5f',
+        secondary_color: secondaryColor || '#c5a900',
+        logo_url: logoUrl || '',
       },
-      success_url: `${req.headers.get('origin')}/t/${teamSlug}?payment=success`,
-      cancel_url: `${req.headers.get('origin')}/t/${teamSlug}?payment=cancelled`,
+      success_url: `${req.headers.get('origin')}/t/${slug}?payment=success`,
+      cancel_url: `${req.headers.get('origin')}/onboarding?cancelled=true`,
     }
 
-    // Add 14-day trial if requested (new team onboarding)
     if (trial) {
-      sessionParams.subscription_data = {
-        trial_period_days: TRIAL_DAYS,
-      }
+      sessionParams.subscription_data = { trial_period_days: TRIAL_DAYS }
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams)
