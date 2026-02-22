@@ -78,7 +78,7 @@ export default function TeamOnboarding() {
     return () => clearTimeout(t)
   }, [resendCooldown])
 
-  /** Verify the confirmation code from email */
+  /** Verify the 6-digit code via our edge function */
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault()
     const code = verificationCode.trim()
@@ -86,25 +86,35 @@ export default function TeamOnboarding() {
     setError('')
     setLoading(true)
     try {
-      // Try verifyOtp with type 'signup' first
-      const { data, error: otpErr } = await supabase.auth.verifyOtp({
-        email: coach.email,
-        token: code,
-        type: 'signup',
-      })
-      if (otpErr) {
-        // If that fails, try type 'email' (Supabase sometimes uses this)
-        const { data: data2, error: otpErr2 } = await supabase.auth.verifyOtp({
-          email: coach.email,
-          token: code,
-          type: 'email',
-        })
-        if (otpErr2) throw otpErr
-        if (!data2?.session) throw new Error('Verification failed — no session returned')
-      } else if (!data?.session) {
-        throw new Error('Verification failed — no session returned')
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-code`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: coach.email,
+            code,
+            password: coach.password,
+          }),
+        }
+      )
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Verification failed')
       }
-      
+
+      if (data.session) {
+        // Set the session from the edge function response
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        })
+      } else {
+        // Fallback: sign in with password (email is now confirmed)
+        const { error: signInErr } = await signIn(coach.email, coach.password)
+        if (signInErr) throw signInErr
+      }
+
       await refreshProfile()
       setStep('team-info')
     } catch (err: unknown) {
@@ -115,19 +125,28 @@ export default function TeamOnboarding() {
     }
   }
 
-  /** Resend verification email */
+  /** Resend verification code via our edge function */
   const handleResendVerification = async () => {
     if (resendCooldown > 0) return
     setError('')
     try {
-      const { error: resendErr } = await supabase.auth.resend({
-        type: 'signup',
-        email: coach.email,
-      })
-      if (resendErr) throw resendErr
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-verification`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: coach.email,
+            password: coach.password,
+            fullName: coach.fullName,
+          }),
+        }
+      )
+      const data = await res.json()
+      if (!res.ok || data.error) throw new Error(data.error || 'Failed to resend')
       setResendCooldown(60) // 60 second cooldown
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to resend email')
+      setError(err instanceof Error ? err.message : 'Failed to resend code')
     }
   }
 
@@ -148,35 +167,22 @@ export default function TeamOnboarding() {
         // Sign out any existing session first so the new account is clean
         await supabase.auth.signOut()
         
-        // Sign up new coach account
-        const { data, error: signUpErr } = await supabase.auth.signUp({
-          email: coach.email,
-          password: coach.password,
-          options: {
-            data: { full_name: coach.fullName },
-            emailRedirectTo: `${window.location.origin}/onboard`,
-          },
-        })
-        if (signUpErr) throw signUpErr
-
-        // Always require email verification for new signups.
-        // Even if Supabase returns a session, we force the verification step.
-        // The user must click the email link before proceeding.
-        console.log('[Onboarding] signUp result:', {
-          hasSession: !!data.session,
-          hasUser: !!data.user,
-          emailConfirmed: data.user?.email_confirmed_at,
-          identities: data.user?.identities?.length,
-        })
-        
-        // Check if this is a real new user (has identities) vs duplicate email (empty identities)
-        if (data.user && data.user.identities && data.user.identities.length === 0) {
-          throw new Error('An account with this email already exists. Try signing in instead.')
-        }
-        
-        // Force verification screen — sign out any auto-created session
-        if (data.session) {
-          await supabase.auth.signOut()
+        // Create user and send 6-digit code via our edge function (Resend)
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-verification`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: coach.email,
+              password: coach.password,
+              fullName: coach.fullName,
+            }),
+          }
+        )
+        const data = await res.json()
+        if (!res.ok || data.error) {
+          throw new Error(data.error || 'Failed to send verification code')
         }
         
         setVerificationCode('')
@@ -494,7 +500,7 @@ export default function TeamOnboarding() {
             </div>
             <h2 className="text-2xl font-bold text-navy-900 mb-2">Enter Verification Code</h2>
             <p className="text-gray-500 mb-2">
-              We sent a code to:
+              We sent a 6-digit code to:
             </p>
             <p className="text-navy-800 font-semibold text-lg mb-6">{coach.email}</p>
             
