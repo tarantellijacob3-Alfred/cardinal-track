@@ -226,9 +226,16 @@ export default function TeamOnboarding() {
     setStep('plan')
   }
 
-  /* ── Step 3: Plan selection → go to step 4 ── */
-  const handleSelectPlan = () => {
-    setStep('launch')
+  /* ── Step 3: Plan selection ── */
+  const handleSelectPlan = async () => {
+    const promo = isPromoActive()
+    if (promo) {
+      // Promo: go to launch step (no payment needed)
+      setStep('launch')
+    } else {
+      // Non-promo: skip launch, go directly to Stripe checkout
+      await handleCreateTeamAndPay()
+    }
   }
 
   /* ── Step 4: Create team + redirect to Stripe ── */
@@ -790,13 +797,14 @@ export default function TeamOnboarding() {
 
                   <button
                     onClick={handleSelectPlan}
+                    disabled={loading}
                     className="btn-primary w-full min-h-[44px] text-lg"
                   >
-                    Start Free Trial & Create Team
+                    {loading ? 'Setting up...' : 'Continue to Payment'}
                   </button>
 
                   <p className="text-xs text-gray-400 text-center mt-3">
-                    You'll enter payment info on the next step. You won't be charged until after your {TRIAL_DAYS}-day trial.
+                    Enter your card to start your {TRIAL_DAYS}-day free trial. You won't be charged until after the trial ends.
                   </p>
                 </div>
               </>
