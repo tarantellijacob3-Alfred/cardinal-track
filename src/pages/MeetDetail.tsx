@@ -11,6 +11,7 @@ import AthleteAssignModal from '../components/AthleteAssignModal'
 import PrintMeetSheet from '../components/PrintMeetSheet'
 import TFRRSLink from '../components/TFRRSLink'
 import EditMeetModal from '../components/EditMeetModal'
+import { DragDropProvider } from '../contexts/DragDropContext'
 import { searchTFRRSMeet, isValidResultsUrl } from '../lib/tfrrs'
 import type { TrackEvent, Meet, MeetEntryWithDetails, TFRRSMeetLink } from '../types/database'
 import { supabase } from '../lib/supabase'
@@ -519,6 +520,38 @@ export default function MeetDetail() {
     await removeEntry(entryId)
   }
 
+  /* ── Move entry between events (drag & drop) ── */
+  const handleMoveEntry = async (entryId: string, fromEventId: string, toEventId: string) => {
+    if (!id) return
+    
+    // Find the entry being moved
+    const entry = entries.find(e => e.id === entryId)
+    if (!entry) return
+
+    // Check if athlete is already in target event
+    const existingInTarget = entries.find(
+      e => e.athlete_id === entry.athlete_id && e.event_id === toEventId
+    )
+    if (existingInTarget) {
+      alert('This athlete is already assigned to that event!')
+      return
+    }
+
+    const targetEvent = events.find(e => e.id === toEventId)
+    
+    // Remove from old event
+    await removeEntry(entryId)
+    
+    // Add to new event
+    await addEntry({
+      meet_id: id,
+      athlete_id: entry.athlete_id,
+      event_id: toEventId,
+      relay_leg: null,
+      relay_team: targetEvent?.is_relay ? 'A' : null,
+    })
+  }
+
   const handlePrint = () => {
     window.print()
   }
@@ -887,20 +920,23 @@ export default function MeetDetail() {
 
       {/* ── Card View ── */}
       {viewMode === 'card' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 no-print">
-          {filteredEvents.map(event => (
-            <EventCard
-              key={event.id}
-              event={event}
-              entries={getEntriesByEvent(event.id)}
-              isCoach={effectiveIsCoach}
-              isActive={isEventActive(event.id)}
-              onToggleActive={effectiveIsCoach ? toggleEventActive : undefined}
-              onAssign={isEventActive(event.id) ? () => setAssigningEvent(event) : undefined}
-              onRemoveEntry={handleRemoveEntry}
-            />
-          ))}
-        </div>
+        <DragDropProvider>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 no-print">
+            {filteredEvents.map(event => (
+              <EventCard
+                key={event.id}
+                event={event}
+                entries={getEntriesByEvent(event.id)}
+                isCoach={effectiveIsCoach}
+                isActive={isEventActive(event.id)}
+                onToggleActive={effectiveIsCoach ? toggleEventActive : undefined}
+                onAssign={isEventActive(event.id) ? () => setAssigningEvent(event) : undefined}
+                onRemoveEntry={handleRemoveEntry}
+                onMoveEntry={effectiveIsCoach ? handleMoveEntry : undefined}
+              />
+            ))}
+          </div>
+        </DragDropProvider>
       )}
 
       {/* ── Grid View ── */}

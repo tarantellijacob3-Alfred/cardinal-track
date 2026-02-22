@@ -1,4 +1,7 @@
+import { useEffect, useRef } from 'react'
 import type { TrackEvent, MeetEntryWithDetails } from '../types/database'
+import { useDragDrop } from '../contexts/DragDropContext'
+import { useLongPressDrag } from '../hooks/useLongPressDrag'
 
 interface Props {
   event: TrackEvent
@@ -8,6 +11,7 @@ interface Props {
   onToggleActive?: (eventId: string) => void
   onAssign?: () => void
   onRemoveEntry?: (entryId: string) => void
+  onMoveEntry?: (entryId: string, fromEventId: string, toEventId: string) => void
 }
 
 const categoryColors: Record<string, string> = {
@@ -28,12 +32,142 @@ const categoryBadge: Record<string, string> = {
   Other: 'badge-other',
 }
 
-export default function EventCard({ event, entries, isCoach, isActive = true, onToggleActive, onAssign, onRemoveEntry }: Props) {
+/* Draggable athlete row */
+function DraggableAthleteRow({
+  entry,
+  event,
+  index,
+  isCoach,
+  onRemoveEntry,
+}: {
+  entry: MeetEntryWithDetails
+  event: TrackEvent
+  index: number
+  isCoach: boolean
+  onRemoveEntry?: (entryId: string) => void
+}) {
+  const { state, startDrag, updateDragPosition, endDrag } = useDragDrop()
+  
+  const { isLongPressing, handlers } = useLongPressDrag(entry, {
+    disabled: !isCoach,
+    longPressDelay: 400,
+    onDragStart: () => {
+      startDrag(entry, event.id)
+    },
+    onDragMove: (pos) => {
+      updateDragPosition(pos)
+    },
+    onDragEnd: () => {
+      endDrag()
+    },
+  })
+
+  const isDraggingThis = state.isDragging && state.draggedEntry?.id === entry.id
+
+  return (
+    <div
+      {...handlers}
+      className={`flex items-center justify-between py-1.5 px-2 rounded-md group select-none touch-none transition-all ${
+        isDraggingThis
+          ? 'opacity-30 bg-navy-100'
+          : isLongPressing
+          ? 'bg-navy-100 scale-105 shadow-md'
+          : 'hover:bg-white/50'
+      }`}
+      style={{ touchAction: 'none' }}
+    >
+      <div className="flex items-center space-x-2">
+        <span className="text-xs font-medium text-gray-400 w-5">
+          {event.is_relay && entry.relay_leg ? `L${entry.relay_leg}` : `${index + 1}.`}
+        </span>
+        <span className="text-sm font-medium text-navy-800">
+          {entry.athletes.last_name}, {entry.athletes.first_name}
+        </span>
+        {event.is_relay && entry.relay_team && (
+          <span className="text-xs bg-navy-100 text-navy-600 px-1.5 py-0.5 rounded">
+            {entry.relay_team}
+          </span>
+        )}
+      </div>
+      {isCoach && onRemoveEntry && !state.isDragging && (
+        <button
+          onClick={() => onRemoveEntry(entry.id)}
+          className="sm:opacity-0 sm:group-hover:opacity-100 p-2 text-red-500 hover:text-red-700 transition-all min-h-[44px] min-w-[44px] flex items-center justify-center"
+          title="Remove"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      )}
+      {isCoach && !state.isDragging && (
+        <div className="hidden sm:flex items-center text-xs text-gray-400 mr-2">
+          <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+          </svg>
+          Hold to drag
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function EventCard({
+  event,
+  entries,
+  isCoach,
+  isActive = true,
+  onToggleActive,
+  onAssign,
+  onRemoveEntry,
+  onMoveEntry,
+}: Props) {
+  const cardRef = useRef<HTMLDivElement>(null)
+  const { state, registerDropZone, unregisterDropZone, endDrag } = useDragDrop()
+  
   const colorClass = categoryColors[event.category] || categoryColors.Other
   const badgeClass = categoryBadge[event.category] || categoryBadge.Other
 
+  // Is this card being hovered during drag?
+  const isDropTarget = state.isDragging && state.hoverEventId === event.id
+  const isSourceCard = state.isDragging && state.sourceEventId === event.id
+
+  // Register this card as a drop zone
+  useEffect(() => {
+    if (!cardRef.current || !isCoach) return
+    
+    registerDropZone(event.id, cardRef.current)
+    return () => unregisterDropZone(event.id)
+  }, [event.id, isCoach, registerDropZone, unregisterDropZone])
+
+  // Handle drop on this card
+  useEffect(() => {
+    if (!isDropTarget || !onMoveEntry) return
+
+    const handleTouchEnd = () => {
+      const result = endDrag()
+      if (result && result.targetEventId === event.id) {
+        onMoveEntry(result.entry.id, result.entry.event_id, event.id)
+      }
+    }
+
+    window.addEventListener('touchend', handleTouchEnd)
+    return () => window.removeEventListener('touchend', handleTouchEnd)
+  }, [isDropTarget, endDrag, event.id, onMoveEntry])
+
   return (
-    <div className={`card border-l-4 ${colorClass} ${!isActive ? 'opacity-50' : ''}`}>
+    <div
+      ref={cardRef}
+      className={`card border-l-4 transition-all ${colorClass} ${
+        !isActive ? 'opacity-50' : ''
+      } ${
+        isDropTarget
+          ? 'ring-2 ring-brand-400 ring-offset-2 scale-[1.02] shadow-lg bg-brand-50'
+          : ''
+      } ${
+        isSourceCard ? 'opacity-70' : ''
+      }`}
+    >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           {isCoach && onToggleActive && (
@@ -68,40 +202,33 @@ export default function EventCard({ event, entries, isCoach, isActive = true, on
         </div>
       </div>
 
-      {entries.length === 0 ? (
+      {/* Drop zone hint when dragging */}
+      {state.isDragging && !isSourceCard && (
+        <div className={`mb-2 py-2 px-3 rounded-lg border-2 border-dashed text-center text-sm transition-all ${
+          isDropTarget
+            ? 'border-brand-400 bg-brand-100 text-brand-700'
+            : 'border-gray-300 bg-gray-50 text-gray-400'
+        }`}>
+          {isDropTarget ? '↓ Drop here to move' : 'Drag athlete here'}
+        </div>
+      )}
+
+      {entries.length === 0 && !state.isDragging ? (
         <p className="text-sm text-gray-400 italic">No athletes assigned</p>
       ) : (
         <div className="space-y-1">
           {entries
             .sort((a, b) => (a.relay_leg ?? 99) - (b.relay_leg ?? 99))
             .map((entry, idx) => (
-            <div key={entry.id} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-white/50 group">
-              <div className="flex items-center space-x-2">
-                <span className="text-xs font-medium text-gray-400 w-5">
-                  {event.is_relay && entry.relay_leg ? `L${entry.relay_leg}` : `${idx + 1}.`}
-                </span>
-                <span className="text-sm font-medium text-navy-800">
-                  {entry.athletes.last_name}, {entry.athletes.first_name}
-                </span>
-                {event.is_relay && entry.relay_team && (
-                  <span className="text-xs bg-navy-100 text-navy-600 px-1.5 py-0.5 rounded">
-                    {entry.relay_team}
-                  </span>
-                )}
-              </div>
-              {isCoach && onRemoveEntry && (
-                <button
-                  onClick={() => onRemoveEntry(entry.id)}
-                  className="sm:opacity-0 sm:group-hover:opacity-100 p-2 text-red-500 hover:text-red-700 transition-all min-h-[44px] min-w-[44px] flex items-center justify-center"
-                  title="Remove"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          ))}
+              <DraggableAthleteRow
+                key={entry.id}
+                entry={entry}
+                event={event}
+                index={idx}
+                isCoach={isCoach}
+                onRemoveEntry={onRemoveEntry}
+              />
+            ))}
         </div>
       )}
     </div>
