@@ -524,7 +524,6 @@ export default function MeetDetail() {
   const handleMoveEntry = async (entryId: string, fromEventId: string, toEventId: string) => {
     if (!id) return
     
-    // Find the entry being moved
     const entry = entries.find(e => e.id === entryId)
     if (!entry) return
 
@@ -539,10 +538,7 @@ export default function MeetDetail() {
 
     const targetEvent = events.find(e => e.id === toEventId)
     
-    // Remove from old event
     await removeEntry(entryId)
-    
-    // Add to new event
     await addEntry({
       meet_id: id,
       athlete_id: entry.athlete_id,

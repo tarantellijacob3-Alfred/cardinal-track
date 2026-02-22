@@ -340,13 +340,12 @@ export default function TeamOnboarding() {
           if (url) {
             window.location.href = url
           } else {
-            // Fallback: go to dashboard (trial will still work from trial_expires_at)
-            navigate(`/t/${slug}`)
+            throw new Error('Could not create checkout session')
           }
         } catch (stripeErr) {
           console.error('Stripe checkout redirect failed:', stripeErr)
-          // Fallback: go to dashboard with trial active
-          navigate(`/t/${slug}`)
+          // Don't fallback - payment is required
+          throw new Error('Payment setup failed. Please try again.')
         }
       }
     } catch (err: unknown) {

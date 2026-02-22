@@ -39,26 +39,37 @@ function DraggableAthleteRow({
   index,
   isCoach,
   onRemoveEntry,
+  onMoveEntry,
 }: {
   entry: MeetEntryWithDetails
   event: TrackEvent
   index: number
   isCoach: boolean
   onRemoveEntry?: (entryId: string) => void
+  onMoveEntry?: (entryId: string, fromEventId: string, toEventId: string) => void
 }) {
   const { state, startDrag, updateDragPosition, endDrag } = useDragDrop()
   
   const { isLongPressing, handlers } = useLongPressDrag(entry, {
     disabled: !isCoach,
-    longPressDelay: 400,
-    onDragStart: () => {
-      startDrag(entry, event.id)
+    longPressDelay: 700,
+    onDragStart: (_, pos) => {
+      startDrag(entry, event.id, pos)
     },
     onDragMove: (pos) => {
       updateDragPosition(pos)
     },
-    onDragEnd: () => {
-      endDrag()
+    onDragEnd: (dropResult) => {
+      endDrag() // Reset drag state
+      if (dropResult && dropResult.targetEventId !== event.id && onMoveEntry) {
+        onMoveEntry(entry.id, event.id, dropResult.targetEventId)
+      }
+    },
+    getDropResult: () => {
+      if (state.hoverEventId && state.hoverEventId !== event.id) {
+        return { targetEventId: state.hoverEventId }
+      }
+      return null
     },
   })
 
@@ -67,14 +78,13 @@ function DraggableAthleteRow({
   return (
     <div
       {...handlers}
-      className={`flex items-center justify-between py-1.5 px-2 rounded-md group select-none touch-none transition-all ${
+      className={`flex items-center justify-between py-1.5 px-2 rounded-md group transition-all ${
         isDraggingThis
           ? 'opacity-30 bg-navy-100'
           : isLongPressing
-          ? 'bg-navy-100 scale-105 shadow-md'
+          ? 'bg-navy-100 scale-[1.02] shadow-md'
           : 'hover:bg-white/50'
       }`}
-      style={{ touchAction: 'none' }}
     >
       <div className="flex items-center space-x-2">
         <span className="text-xs font-medium text-gray-400 w-5">
@@ -100,14 +110,6 @@ function DraggableAthleteRow({
           </svg>
         </button>
       )}
-      {isCoach && !state.isDragging && (
-        <div className="hidden sm:flex items-center text-xs text-gray-400 mr-2">
-          <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-          </svg>
-          Hold to drag
-        </div>
-      )}
     </div>
   )
 }
@@ -128,32 +130,15 @@ export default function EventCard({
   const colorClass = categoryColors[event.category] || categoryColors.Other
   const badgeClass = categoryBadge[event.category] || categoryBadge.Other
 
-  // Is this card being hovered during drag?
   const isDropTarget = state.isDragging && state.hoverEventId === event.id
   const isSourceCard = state.isDragging && state.sourceEventId === event.id
 
-  // Register this card as a drop zone
+  // Register as drop zone
   useEffect(() => {
     if (!cardRef.current || !isCoach) return
-    
     registerDropZone(event.id, cardRef.current)
     return () => unregisterDropZone(event.id)
   }, [event.id, isCoach, registerDropZone, unregisterDropZone])
-
-  // Handle drop on this card
-  useEffect(() => {
-    if (!isDropTarget || !onMoveEntry) return
-
-    const handleTouchEnd = () => {
-      const result = endDrag()
-      if (result && result.targetEventId === event.id) {
-        onMoveEntry(result.entry.id, result.entry.event_id, event.id)
-      }
-    }
-
-    window.addEventListener('touchend', handleTouchEnd)
-    return () => window.removeEventListener('touchend', handleTouchEnd)
-  }, [isDropTarget, endDrag, event.id, onMoveEntry])
 
   return (
     <div
@@ -161,11 +146,9 @@ export default function EventCard({
       className={`card border-l-4 transition-all ${colorClass} ${
         !isActive ? 'opacity-50' : ''
       } ${
-        isDropTarget
-          ? 'ring-2 ring-brand-400 ring-offset-2 scale-[1.02] shadow-lg bg-brand-50'
-          : ''
+        isDropTarget ? 'ring-2 ring-brand-400 ring-offset-2 scale-[1.02] shadow-lg' : ''
       } ${
-        isSourceCard ? 'opacity-70' : ''
+        isSourceCard ? 'opacity-60' : ''
       }`}
     >
       <div className="flex items-center justify-between mb-3">
@@ -202,14 +185,14 @@ export default function EventCard({
         </div>
       </div>
 
-      {/* Drop zone hint when dragging */}
+      {/* Drop hint */}
       {state.isDragging && !isSourceCard && (
-        <div className={`mb-2 py-2 px-3 rounded-lg border-2 border-dashed text-center text-sm transition-all ${
+        <div className={`mb-2 py-2 px-3 rounded-lg border-2 border-dashed text-center text-sm ${
           isDropTarget
             ? 'border-brand-400 bg-brand-100 text-brand-700'
             : 'border-gray-300 bg-gray-50 text-gray-400'
         }`}>
-          {isDropTarget ? '↓ Drop here to move' : 'Drag athlete here'}
+          {isDropTarget ? '↓ Drop here' : 'Drag here'}
         </div>
       )}
 
@@ -227,6 +210,7 @@ export default function EventCard({
                 index={idx}
                 isCoach={isCoach}
                 onRemoveEntry={onRemoveEntry}
+                onMoveEntry={onMoveEntry}
               />
             ))}
         </div>

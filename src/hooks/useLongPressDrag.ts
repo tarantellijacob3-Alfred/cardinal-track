@@ -1,17 +1,12 @@
 import { useRef, useCallback, useEffect, useState } from 'react'
 
-interface DragState {
-  isDragging: boolean
-  draggedItem: unknown | null
-  dragPosition: { x: number; y: number }
-}
-
 interface UseLongPressDragOptions {
-  onDragStart?: (item: unknown) => void
+  onDragStart?: (item: unknown, position: { x: number; y: number }) => void
   onDragMove?: (position: { x: number; y: number }) => void
-  onDragEnd?: () => void
+  onDragEnd?: (result: { targetEventId: string } | null) => void
   longPressDelay?: number
   disabled?: boolean
+  getDropResult?: () => { targetEventId: string } | null
 }
 
 export function useLongPressDrag<T>(
@@ -22,8 +17,9 @@ export function useLongPressDrag<T>(
     onDragStart,
     onDragMove,
     onDragEnd,
-    longPressDelay = 400,
+    longPressDelay = 700,
     disabled = false,
+    getDropResult,
   } = options
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -38,58 +34,85 @@ export function useLongPressDrag<T>(
     }
   }, [])
 
+  // Global touchmove handler to prevent scroll during drag
+  useEffect(() => {
+    if (!isDraggingRef.current) return
+
+    const handleGlobalTouchMove = (e: TouchEvent) => {
+      if (isDraggingRef.current) {
+        e.preventDefault()
+        const touch = e.touches[0]
+        onDragMove?.({ x: touch.clientX, y: touch.clientY })
+      }
+    }
+
+    const handleGlobalTouchEnd = () => {
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false
+        setIsLongPressing(false)
+        const result = getDropResult?.() || null
+        onDragEnd?.(result)
+      }
+      startPosRef.current = null
+    }
+
+    // Use passive: false to allow preventDefault
+    document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false })
+    document.addEventListener('touchend', handleGlobalTouchEnd)
+    document.addEventListener('touchcancel', handleGlobalTouchEnd)
+
+    return () => {
+      document.removeEventListener('touchmove', handleGlobalTouchMove)
+      document.removeEventListener('touchend', handleGlobalTouchEnd)
+      document.removeEventListener('touchcancel', handleGlobalTouchEnd)
+    }
+  }, [isLongPressing, onDragMove, onDragEnd])
+
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (disabled) return
     
     const touch = e.touches[0]
-    startPosRef.current = { x: touch.clientX, y: touch.clientY }
+    const pos = { x: touch.clientX, y: touch.clientY }
+    startPosRef.current = pos
     
     timerRef.current = setTimeout(() => {
       isDraggingRef.current = true
       setIsLongPressing(true)
       
-      // Vibrate for haptic feedback if available
+      // Vibrate for haptic feedback
       if (navigator.vibrate) {
         navigator.vibrate(50)
       }
       
-      onDragStart?.(item)
+      onDragStart?.(item, startPosRef.current || pos)
     }, longPressDelay)
   }, [disabled, longPressDelay, onDragStart, item])
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    const touch = e.touches[0]
-    const currentPos = { x: touch.clientX, y: touch.clientY }
+    if (disabled) return
     
-    // If we haven't started dragging yet, check if we moved too much
+    // If not yet dragging, check if user moved too much (they want to scroll)
     if (!isDraggingRef.current && startPosRef.current) {
-      const dx = Math.abs(currentPos.x - startPosRef.current.x)
-      const dy = Math.abs(currentPos.y - startPosRef.current.y)
+      const touch = e.touches[0]
+      const dx = Math.abs(touch.clientX - startPosRef.current.x)
+      const dy = Math.abs(touch.clientY - startPosRef.current.y)
       
-      // If moved more than 10px before long press triggered, cancel
+      // Cancel long press if moved more than 10px
       if (dx > 10 || dy > 10) {
         clearTimer()
-        return
+        startPosRef.current = null
       }
     }
-    
-    if (isDraggingRef.current) {
-      e.preventDefault() // Prevent scrolling while dragging
-      onDragMove?.(currentPos)
-    }
-  }, [clearTimer, onDragMove])
+    // Note: actual drag move is handled by global listener
+  }, [disabled, clearTimer])
 
   const handleTouchEnd = useCallback(() => {
     clearTimer()
-    
-    if (isDraggingRef.current) {
-      isDraggingRef.current = false
-      setIsLongPressing(false)
-      onDragEnd?.()
+    // Note: actual drag end is handled by global listener if dragging
+    if (!isDraggingRef.current) {
+      startPosRef.current = null
     }
-    
-    startPosRef.current = null
-  }, [clearTimer, onDragEnd])
+  }, [clearTimer])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -98,7 +121,7 @@ export function useLongPressDrag<T>(
 
   return {
     isLongPressing,
-    handlers: {
+    handlers: disabled ? {} : {
       onTouchStart: handleTouchStart,
       onTouchMove: handleTouchMove,
       onTouchEnd: handleTouchEnd,

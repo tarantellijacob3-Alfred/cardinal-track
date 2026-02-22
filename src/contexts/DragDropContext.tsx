@@ -4,16 +4,14 @@ import type { MeetEntryWithDetails } from '../types/database'
 interface DragState {
   isDragging: boolean
   draggedEntry: MeetEntryWithDetails | null
-  dragPosition: { x: number; y: number }
   sourceEventId: string | null
   hoverEventId: string | null
 }
 
 interface DragDropContextType {
   state: DragState
-  startDrag: (entry: MeetEntryWithDetails, sourceEventId: string) => void
+  startDrag: (entry: MeetEntryWithDetails, sourceEventId: string, initialPosition: { x: number; y: number }) => void
   updateDragPosition: (position: { x: number; y: number }) => void
-  setHoverEvent: (eventId: string | null) => void
   endDrag: () => { entry: MeetEntryWithDetails; targetEventId: string } | null
   registerDropZone: (eventId: string, element: HTMLElement) => void
   unregisterDropZone: (eventId: string) => void
@@ -25,111 +23,112 @@ export function DragDropProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<DragState>({
     isDragging: false,
     draggedEntry: null,
-    dragPosition: { x: 0, y: 0 },
     sourceEventId: null,
     hoverEventId: null,
   })
   
   const dropZonesRef = useRef<Map<string, HTMLElement>>(new Map())
-  const scrollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const lastScrollTimeRef = useRef<number>(0)
+  const overlayRef = useRef<HTMLDivElement | null>(null)
+  const positionRef = useRef({ x: 0, y: 0 })
+  const rafRef = useRef<number | null>(null)
 
-  // Auto-scroll logic
+  // Lock body scroll when dragging
   useEffect(() => {
-    if (!state.isDragging) {
-      if (scrollIntervalRef.current) {
-        clearInterval(scrollIntervalRef.current)
-        scrollIntervalRef.current = null
-      }
-      return
+    if (state.isDragging) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.touchAction = 'none'
+    } else {
+      document.body.style.overflow = ''
+      document.body.style.touchAction = ''
     }
-
-    const handleAutoScroll = () => {
-      const { y } = state.dragPosition
-      const viewportHeight = window.innerHeight
-      const scrollThreshold = 100 // pixels from edge to trigger scroll
-      const scrollSpeed = 10 // pixels per frame
-      
-      const now = Date.now()
-      if (now - lastScrollTimeRef.current < 16) return // ~60fps throttle
-      lastScrollTimeRef.current = now
-
-      if (y < scrollThreshold) {
-        // Scroll up
-        const intensity = 1 - (y / scrollThreshold)
-        window.scrollBy(0, -scrollSpeed * intensity)
-      } else if (y > viewportHeight - scrollThreshold) {
-        // Scroll down
-        const intensity = 1 - ((viewportHeight - y) / scrollThreshold)
-        window.scrollBy(0, scrollSpeed * intensity)
-      }
-    }
-
-    scrollIntervalRef.current = setInterval(handleAutoScroll, 16)
-    
     return () => {
-      if (scrollIntervalRef.current) {
-        clearInterval(scrollIntervalRef.current)
-        scrollIntervalRef.current = null
-      }
+      document.body.style.overflow = ''
+      document.body.style.touchAction = ''
     }
-  }, [state.isDragging, state.dragPosition])
+  }, [state.isDragging])
+
+  // Update overlay position smoothly using RAF
+  const updateOverlayPosition = useCallback(() => {
+    if (overlayRef.current) {
+      overlayRef.current.style.left = `${positionRef.current.x}px`
+      overlayRef.current.style.top = `${positionRef.current.y}px`
+    }
+    rafRef.current = null
+  }, [])
 
   // Detect which drop zone we're over
-  useEffect(() => {
-    if (!state.isDragging) return
-
-    const { x, y } = state.dragPosition
+  const detectHoverZone = useCallback((x: number, y: number) => {
     let foundEventId: string | null = null
 
     dropZonesRef.current.forEach((element, eventId) => {
       const rect = element.getBoundingClientRect()
-      if (
-        x >= rect.left &&
-        x <= rect.right &&
-        y >= rect.top &&
-        y <= rect.bottom
-      ) {
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
         foundEventId = eventId
       }
     })
 
-    if (foundEventId !== state.hoverEventId) {
-      setState(prev => ({ ...prev, hoverEventId: foundEventId }))
-    }
-  }, [state.isDragging, state.dragPosition, state.hoverEventId])
-
-  const startDrag = useCallback((entry: MeetEntryWithDetails, sourceEventId: string) => {
-    setState({
-      isDragging: true,
-      draggedEntry: entry,
-      dragPosition: { x: 0, y: 0 },
-      sourceEventId,
-      hoverEventId: null,
+    setState(prev => {
+      if (prev.hoverEventId !== foundEventId) {
+        return { ...prev, hoverEventId: foundEventId }
+      }
+      return prev
     })
   }, [])
 
-  const updateDragPosition = useCallback((position: { x: number; y: number }) => {
-    setState(prev => ({ ...prev, dragPosition: position }))
+  // Auto-scroll only at very edges
+  const handleAutoScroll = useCallback((y: number) => {
+    const viewportHeight = window.innerHeight
+    const edgeThreshold = 50 // Very edge only
+    const scrollSpeed = 10
+    
+    if (y < edgeThreshold) {
+      window.scrollBy(0, -scrollSpeed)
+    } else if (y > viewportHeight - edgeThreshold) {
+      window.scrollBy(0, scrollSpeed)
+    }
   }, [])
 
-  const setHoverEvent = useCallback((eventId: string | null) => {
-    setState(prev => ({ ...prev, hoverEventId: eventId }))
-  }, [])
+  const startDrag = useCallback((entry: MeetEntryWithDetails, sourceEventId: string, initialPosition: { x: number; y: number }) => {
+    positionRef.current = initialPosition
+    setState({
+      isDragging: true,
+      draggedEntry: entry,
+      sourceEventId,
+      hoverEventId: null,
+    })
+    // Immediate position update
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    rafRef.current = requestAnimationFrame(updateOverlayPosition)
+  }, [updateOverlayPosition])
+
+  const updateDragPosition = useCallback((position: { x: number; y: number }) => {
+    positionRef.current = position
+    
+    // Schedule smooth position update
+    if (!rafRef.current) {
+      rafRef.current = requestAnimationFrame(updateOverlayPosition)
+    }
+    
+    // Detect drop zones and auto-scroll
+    detectHoverZone(position.x, position.y)
+    handleAutoScroll(position.y)
+  }, [updateOverlayPosition, detectHoverZone, handleAutoScroll])
 
   const endDrag = useCallback(() => {
     const { draggedEntry, hoverEventId, sourceEventId } = state
     
-    // Reset state
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
+    
     setState({
       isDragging: false,
       draggedEntry: null,
-      dragPosition: { x: 0, y: 0 },
       sourceEventId: null,
       hoverEventId: null,
     })
 
-    // Return the result if we have a valid drop
     if (draggedEntry && hoverEventId && hoverEventId !== sourceEventId) {
       return { entry: draggedEntry, targetEventId: hoverEventId }
     }
@@ -151,7 +150,6 @@ export function DragDropProvider({ children }: { children: ReactNode }) {
         state,
         startDrag,
         updateDragPosition,
-        setHoverEvent,
         endDrag,
         registerDropZone,
         unregisterDropZone,
@@ -159,20 +157,23 @@ export function DragDropProvider({ children }: { children: ReactNode }) {
     >
       {children}
       
-      {/* Drag overlay - floating athlete card */}
+      {/* Drag overlay - follows finger smoothly */}
       {state.isDragging && state.draggedEntry && (
         <div
-          className="fixed pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2"
+          ref={overlayRef}
+          className="fixed pointer-events-none z-[9999] transform -translate-x-1/2 -translate-y-full"
           style={{
-            left: state.dragPosition.x,
-            top: state.dragPosition.y,
+            left: positionRef.current.x,
+            top: positionRef.current.y,
+            willChange: 'left, top',
           }}
         >
-          <div className="bg-navy-800 text-white px-4 py-2 rounded-lg shadow-xl border-2 border-brand-400 animate-pulse">
-            <span className="font-medium">
+          <div className="bg-navy-800 text-white px-4 py-2 rounded-lg shadow-2xl border-2 border-brand-400">
+            <span className="font-medium text-sm">
               {state.draggedEntry.athletes.last_name}, {state.draggedEntry.athletes.first_name}
             </span>
           </div>
+          <div className="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-navy-800 mx-auto" />
         </div>
       )}
     </DragDropContext.Provider>
